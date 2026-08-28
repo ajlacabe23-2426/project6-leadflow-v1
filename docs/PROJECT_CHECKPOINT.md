@@ -2,7 +2,9 @@
 
 ## Status
 
-**Core vertical slice: complete and locally verified.**
+**Core V1 implementation: complete.**  
+**Repository-side portfolio hardening: complete.**  
+**Remaining work: manual browser/runtime evidence and optional hosting.**
 
 ## Implemented
 
@@ -18,12 +20,13 @@
 - SQLite persistence
 - Operator queue
 - Nine regression tests
-- GitHub Actions CI workflow
-- Architecture, security, roadmap, evidence, and portfolio documentation
+- GitHub Actions CI
+- Docker packaging
+- Demo smoke-test script
+- Architecture, security, deployment, API, roadmap, evidence, development, resume, and interview documentation
+- GitHub issue and pull-request templates
 
-## Verification evidence
-
-Independent execution confirmed:
+## Verification evidence already established
 
 - `pytest -q` → **9 passed**
 - `GET /health` → **200**
@@ -34,31 +37,41 @@ Independent execution confirmed:
 - next action → **human-priority-review**
 - `GET /api/leads` returned the persisted lead
 - invalid email request → **422**
+- repaired GitHub Actions run → **green**
 
-## Demonstration scenario
+## Current CI hardening
 
-A complete lead with:
-- estimated value >= $10,000
-- timeline <= 7 days
-- budget confirmed
-- decision-maker status
-- complete intake fields
+The repository workflow now validates:
 
-produces:
-- score: **100/100**
-- route: **qualified**
-- priority: **high**
-- next action: **human-priority-review**
+1. Python source compilation
+2. dependency consistency
+3. regression tests
+4. demo smoke path
+5. Docker image build
 
-## Deliberately deferred
+## Manual work intentionally left for AJ's computer
 
-- Outbound email/SMS
-- Calendar scheduling
+- Run the final application locally.
+- Capture intake-form screenshot.
+- Submit sample lead through browser UI.
+- Capture 100/100 result.
+- Capture operator queue.
+- Restart and verify persistence visually.
+- Capture final green CI screenshot.
+- Optional short demo recording.
+
+## V2 remains separate
+
+V1 does not claim:
+
+- real outbound email/SMS
+- real calendar scheduling
 - CRM writes
-- Retry/idempotency layer
-- Authentication and multi-tenancy
-- Hosted production deployment
+- multi-tenant production auth
+- managed production database
+- durable external-action retry/idempotency
+- hosted production deployment
 
-## Definition of success for V1
+## Definition of V1 completion
 
-A recruiter, interviewer, or potential customer can see a complete workflow rather than isolated AI prompts: structured intake, deterministic decision logic, persistence, operator visibility, testing, and explicit production boundaries.
+The code and repository are complete when the hardened CI passes. The portfolio package is complete after the remaining manual screenshots/runtime evidence are captured.
