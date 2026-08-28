@@ -13,7 +13,7 @@ jobs:
   test:
     name: Python test suite
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     env:
       PYTHONPATH: ${{ github.workspace }}
 
@@ -37,5 +37,19 @@ jobs:
           python --version
           python -m pip --version
 
+      - name: Compile Python sources
+        run: python -m compileall -q app tests scripts
+
+      - name: Check dependency consistency
+        run: python -m pip check
+
       - name: Run tests
         run: python -m pytest -q
+
+      - name: Run demo smoke test
+        env:
+          LEADFLOW_DB_PATH: /tmp/leadflow-demo.db
+        run: python scripts/demo.py
+
+      - name: Build Docker image
+        run: docker build -t leadflow-v1:ci .

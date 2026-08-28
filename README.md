@@ -43,8 +43,10 @@ The core qualification decision is deterministic and explainable. AI is intentio
 - SQLite persistence
 - Operator dashboard
 - **Nine regression tests** across scoring and API behavior
-- GitHub Actions CI workflow
-- Architecture, security, roadmap, evidence, and interview documentation
+- GitHub Actions CI
+- Docker packaging
+- Demo smoke-test script
+- Architecture, security, deployment, API, roadmap, evidence, and interview documentation
 
 ## Qualification model
 
@@ -69,20 +71,32 @@ Routing:
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-# Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
 Open `http://127.0.0.1:8000`.
 
-Run tests:
+Run verification:
 
 ```bash
-pytest -q
+python -m compileall -q app tests scripts
+python -m pip check
+python -m pytest -q
+python scripts/demo.py
 ```
 
-## Example API request
+## Docker
+
+```bash
+docker build -t leadflow-v1 .
+docker run --rm -p 8000:8000 -v leadflow-data:/app/data leadflow-v1
+```
+
+Then open `http://127.0.0.1:8000`.
+
+## Example high-priority lead
 
 ```json
 {
@@ -105,24 +119,34 @@ This sample scores **100/100**, routes to **qualified**, receives **high** prior
 
 ```text
 app/
-  main.py          API + browser routes
-  models.py        Request/response contracts
-  scoring.py       Qualification engine
-  followup.py      Follow-up draft generation
-  storage.py       SQLite persistence
+  main.py
+  models.py
+  scoring.py
+  followup.py
+  storage.py
 static/
-  index.html       Intake + operator UI
+  index.html
+scripts/
+  demo.py
 tests/
-  test_scoring.py  Qualification/follow-up regression tests
-  test_api.py      API, persistence, validation tests
+  test_scoring.py
+  test_api.py
 docs/
   ARCHITECTURE.md
-  ROADMAP.md
+  API_EXAMPLES.md
+  DEVELOPMENT.md
+  DEPLOYMENT.md
   EVIDENCE_CHECKLIST.md
   INTERVIEW_TALKING_POINTS.md
   PROJECT_CHECKPOINT.md
-.github/workflows/
-  ci.yml
+  RELEASE_CHECKLIST.md
+  RESUME_BULLETS.md
+  ROADMAP.md
+.github/
+  ISSUE_TEMPLATE/
+  pull_request_template.md
+  workflows/ci.yml
+Dockerfile
 SECURITY.md
 ```
 
@@ -132,9 +156,23 @@ SECURITY.md
 
 **Human escalation for high-value leads.** Automation accelerates triage; it does not remove judgment from consequential decisions.
 
-**Local persistence for V1.** SQLite keeps the demo reproducible and inexpensive while preserving a clean migration path to Postgres or CRM storage.
+**Local persistence for V1.** SQLite keeps the demo reproducible while preserving a clean migration path to managed Postgres or CRM storage.
 
 **No fake production integrations.** Email delivery, CRM writes, and calendar booking are explicitly deferred until idempotency, retry, authorization, and provider-failure behavior are designed.
+
+## Verified V1 behavior
+
+The application and regression suite have verified:
+
+- **9/9 tests pass**
+- health endpoint → HTTP 200
+- sample lead creation → HTTP 201
+- sample lead → **100/100 / qualified / high / human-priority-review**
+- persisted lead appears in operator queue
+- invalid email → HTTP 422
+- latest GitHub Actions repair run → **green**
+
+The hardening workflow additionally checks Python compilation, dependency consistency, the demo path, and Docker image construction.
 
 ## V1 boundaries
 
@@ -146,28 +184,27 @@ Not implemented yet:
 - External-action idempotency/retry queue
 - Production authentication/authorization
 - Multi-tenant isolation
-- Hosted deployment
+- Managed production persistence
+- Hosted public deployment
 
-Those are V2 integration concerns, not hidden behind demo buttons.
+Those are V2 concerns, not hidden behind demo buttons.
 
-## Verified V1 behavior
+## Documentation shortcuts
 
-Independent execution of the committed application logic and test cases confirmed:
-
-- **9/9 tests pass**
-- health endpoint returns HTTP 200
-- sample lead creation returns HTTP 201
-- sample lead produces **100/100 / qualified / high / human-priority-review**
-- created lead is returned by the operator queue API
-- invalid email input fails validation with HTTP 422
-
-The repository also contains a GitHub Actions workflow so the same regression suite can run on pushes and pull requests.
+- [Architecture](docs/ARCHITECTURE.md)
+- [API examples](docs/API_EXAMPLES.md)
+- [Development guide](docs/DEVELOPMENT.md)
+- [Deployment guide](docs/DEPLOYMENT.md)
+- [Security policy](SECURITY.md)
+- [Roadmap](docs/ROADMAP.md)
+- [Evidence checklist](docs/EVIDENCE_CHECKLIST.md)
+- [Release checklist](docs/RELEASE_CHECKLIST.md)
+- [Interview talking points](docs/INTERVIEW_TALKING_POINTS.md)
+- [Resume bullets](docs/RESUME_BULLETS.md)
 
 ## What this project demonstrates
 
-API design • validation • business-rule modeling • explainable automation • persistence • workflow orchestration • human-in-the-loop design • regression testing • CI • production-minded integration planning
-
-See [Interview Talking Points](docs/INTERVIEW_TALKING_POINTS.md) for a concise technical explanation.
+API design • validation • business-rule modeling • explainable automation • persistence • workflow orchestration • human-in-the-loop design • regression testing • CI • Docker • security boundaries • production-minded integration planning
 
 ## License
 
