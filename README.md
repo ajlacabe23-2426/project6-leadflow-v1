@@ -42,9 +42,9 @@ The core qualification decision is deterministic and explainable. AI is intentio
 - Personalized deterministic follow-up drafts
 - SQLite persistence
 - Operator dashboard
-- Six focused regression tests
-- GitHub Actions CI
-- Architecture, evidence, and interview documentation
+- **Nine regression tests** across scoring and API behavior
+- GitHub Actions CI workflow
+- Architecture, security, roadmap, evidence, and interview documentation
 
 ## Qualification model
 
@@ -113,14 +113,17 @@ app/
 static/
   index.html       Intake + operator UI
 tests/
-  test_scoring.py
+  test_scoring.py  Qualification/follow-up regression tests
+  test_api.py      API, persistence, validation tests
 docs/
   ARCHITECTURE.md
+  ROADMAP.md
   EVIDENCE_CHECKLIST.md
   INTERVIEW_TALKING_POINTS.md
   PROJECT_CHECKPOINT.md
 .github/workflows/
   ci.yml
+SECURITY.md
 ```
 
 ## Engineering decisions
@@ -146,6 +149,19 @@ Not implemented yet:
 - Hosted deployment
 
 Those are V2 integration concerns, not hidden behind demo buttons.
+
+## Verified V1 behavior
+
+Independent execution of the committed application logic and test cases confirmed:
+
+- **9/9 tests pass**
+- health endpoint returns HTTP 200
+- sample lead creation returns HTTP 201
+- sample lead produces **100/100 / qualified / high / human-priority-review**
+- created lead is returned by the operator queue API
+- invalid email input fails validation with HTTP 422
+
+The repository also contains a GitHub Actions workflow so the same regression suite can run on pushes and pull requests.
 
 ## What this project demonstrates
 
