@@ -2,7 +2,7 @@
 
 ## Status
 
-**Core vertical slice: complete.**
+**Core vertical slice: complete and locally verified.**
 
 ## Implemented
 
@@ -17,9 +17,23 @@
 - Follow-up draft generation
 - SQLite persistence
 - Operator queue
-- Six focused tests
-- GitHub Actions CI
-- Architecture and portfolio documentation
+- Nine regression tests
+- GitHub Actions CI workflow
+- Architecture, security, roadmap, evidence, and portfolio documentation
+
+## Verification evidence
+
+Independent execution confirmed:
+
+- `pytest -q` → **9 passed**
+- `GET /health` → **200**
+- sample `POST /api/leads` → **201**
+- sample qualification → **100/100**
+- route → **qualified**
+- priority → **high**
+- next action → **human-priority-review**
+- `GET /api/leads` returned the persisted lead
+- invalid email request → **422**
 
 ## Demonstration scenario
 
