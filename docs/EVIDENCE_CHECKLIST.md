@@ -2,17 +2,20 @@
 
 ## Repository evidence
 
-- [ ] GitHub Actions CI is green.
-- [x] Nine tests pass in independent execution.
+- [x] Nine tests pass.
+- [x] GitHub Actions repair run is green.
 - [x] Runtime SQLite database is ignored.
 - [x] README accurately distinguishes V1 from deferred integrations.
 - [x] Security boundary is documented.
 - [x] V2 integration risks are documented.
+- [x] Docker packaging is present.
+- [x] Demo smoke script is present.
+- [x] Deployment/API/development documentation is present.
+- [x] Resume and interview evidence is documented.
 
-## Runtime evidence
+## Runtime evidence already exercised programmatically
 
 - [x] `GET /health` returns `status: ok`.
-- [ ] Intake form visual/browser smoke test captured.
 - [x] A complete sample lead is accepted.
 - [x] Sample lead scores 100/100.
 - [x] Sample lead routes to `qualified`.
@@ -21,18 +24,19 @@
 - [x] Follow-up draft is generated.
 - [x] Lead appears in operator queue API.
 - [x] SQLite persistence path is exercised.
-
-## Failure / edge evidence
-
+- [x] Invalid email is rejected.
 - [x] Missing value/timeline routes to `needs-info`.
 - [x] Low-intent complete lead routes to `nurture`.
-- [x] Invalid email is rejected by the API contract.
 - [x] Score breakdown sums to final score.
 - [x] Repeating the same input returns the same qualification result.
 
-## Still useful to capture manually
+## Manual computer-oriented evidence remaining
 
-- [ ] Screenshot of lead-intake form.
-- [ ] Screenshot of 100/100 result.
-- [ ] Screenshot of operator queue.
-- [ ] Screenshot of GitHub Actions green run.
+- [ ] Run final application locally.
+- [ ] Screenshot lead-intake form.
+- [ ] Submit complete sample lead in browser.
+- [ ] Screenshot 100/100 result.
+- [ ] Screenshot operator queue.
+- [ ] Restart app and visually confirm persisted lead remains.
+- [ ] Screenshot final green hardened GitHub Actions run.
+- [ ] Optional 30–60 second demo recording.
