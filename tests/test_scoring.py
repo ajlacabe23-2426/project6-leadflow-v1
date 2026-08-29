@@ -15,6 +15,8 @@ def make_lead(**overrides):
         "budget_confirmed": True,
         "decision_maker": True,
         "notes": "Needs intake and scheduling automation.",
+        "communication_consent": True,
+        "opted_out": False,
     }
     values.update(overrides)
     return LeadCreate(**values)

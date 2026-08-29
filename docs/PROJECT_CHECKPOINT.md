@@ -2,8 +2,10 @@
 
 ## Status
 
-**Core V1 implementation: complete.**  
-**Repository-side portfolio hardening: complete.**  
+**Core V1 implementation: complete.**
+
+**V1.1 reliability slice: implemented; local automated verification complete.**
+
 **Remaining work: manual browser/runtime evidence and optional hosting.**
 
 ## Implemented
@@ -19,7 +21,11 @@
 - Follow-up draft generation
 - SQLite persistence
 - Operator queue
-- Nine regression tests
+- Twelve regression tests
+- 24-hour duplicate-submission prevention
+- consent and opt-out enforcement
+- explicit communication and scheduling states
+- four-event decision/action audit history
 - GitHub Actions CI
 - Docker packaging
 - Demo smoke-test script
@@ -28,7 +34,7 @@
 
 ## Verification evidence already established
 
-- `pytest -q` → **9 passed**
+- `pytest -q` → **12 passed**
 - `GET /health` → **200**
 - sample `POST /api/leads` → **201**
 - sample qualification → **100/100**
@@ -37,6 +43,9 @@
 - next action → **human-priority-review**
 - `GET /api/leads` returned the persisted lead
 - invalid email request → **422**
+- duplicate request → same record ID and one queued record
+- conflicting consent and opt-out → **422**
+- smoke demo → communication, scheduling, and four audit events reported
 - repaired GitHub Actions run → **green**
 
 ## Current CI hardening
@@ -46,7 +55,7 @@ The repository workflow now validates:
 1. Python source compilation
 2. dependency consistency
 3. regression tests
-4. demo smoke path
+4. demo smoke path via the locally reproducible module invocation
 5. Docker image build
 
 ## Manual work intentionally left for AJ's computer
