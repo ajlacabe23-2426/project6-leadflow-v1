@@ -17,7 +17,10 @@ Status: implemented.
 ## V1.1 — Reliability
 
 - request id / correlation id
-- duplicate-submission detection
+- duplicate-submission detection — implemented with a 24-hour normalized identity window
+- consent and opt-out communication controls — implemented
+- explicit scheduling state — implemented
+- per-lead decision/action audit history — implemented
 - pagination and filtering
 - structured application logging
 - API-level test expansion

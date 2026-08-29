@@ -46,6 +46,8 @@
         <div class="checks">
           <label><input name="budget_confirmed" type="checkbox" /> Budget confirmed</label>
           <label><input name="decision_maker" type="checkbox" /> Decision maker</label>
+          <label><input name="communication_consent" type="checkbox" /> Consent to follow up</label>
+          <label><input name="opted_out" type="checkbox" /> Opted out</label>
         </div>
         <label>Notes <textarea name="notes"></textarea></label>
         <button type="submit">Qualify lead</button>
@@ -65,6 +67,11 @@
 const form = document.querySelector("#lead-form");
 const result = document.querySelector("#result");
 const queue = document.querySelector("#queue");
+function escapeHtml(value) {
+  return String(value).replace(/[&<>'"]/g, (character) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
+  })[character]);
+}
 function payloadFromForm() {
   const data = new FormData(form);
   const num = (name) => data.get(name) ? Number(data.get(name)) : null;
@@ -79,6 +86,8 @@ function payloadFromForm() {
     budget_confirmed: data.get("budget_confirmed") === "on",
     decision_maker: data.get("decision_maker") === "on",
     notes: data.get("notes") || null
+    ,communication_consent: data.get("communication_consent") === "on"
+    ,opted_out: data.get("opted_out") === "on"
   };
 }
 async function loadQueue() {
@@ -90,12 +99,14 @@ async function loadQueue() {
   }
   queue.innerHTML = leads.map(item => `
     <article class="lead">
-      <strong>${item.lead.name}</strong> · ${item.lead.service}<br/>
-      <span class="badge">${item.qualification.score}/100</span>
-      <span class="badge">${item.qualification.routing}</span>
-      <span class="badge">${item.qualification.priority}</span>
-      <p><strong>Next:</strong> ${item.qualification.next_action}</p>
-      <p class="muted">${item.follow_up}</p>
+      <strong>${escapeHtml(item.lead.name)}</strong> · ${escapeHtml(item.lead.service)}<br/>
+      <span class="badge">${escapeHtml(item.qualification.score)}/100</span>
+      <span class="badge">${escapeHtml(item.qualification.routing)}</span>
+      <span class="badge">${escapeHtml(item.qualification.priority)}</span>
+      <p><strong>Next:</strong> ${escapeHtml(item.qualification.next_action)}</p>
+      <p><strong>Communication:</strong> ${escapeHtml(item.communication_status)}<br/>
+      <strong>Scheduling:</strong> ${escapeHtml(item.scheduling_status)}</p>
+      <p class="muted">${escapeHtml(item.follow_up)}</p>
     </article>`).join("");
 }
 form.addEventListener("submit", async (event) => {
@@ -115,6 +126,8 @@ form.addEventListener("submit", async (event) => {
 Route: ${data.qualification.routing}
 Priority: ${data.qualification.priority}
 Next action: ${data.qualification.next_action}
+Communication: ${data.communication_status}
+Scheduling: ${data.scheduling_status}
 
 Follow-up:
 ${data.follow_up}`;

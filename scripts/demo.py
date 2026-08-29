@@ -14,6 +14,8 @@ SAMPLE_LEAD = {
     "budget_confirmed": True,
     "decision_maker": True,
     "notes": "Needs intake and scheduling automation.",
+    "communication_consent": True,
+    "opted_out": False,
 }
 
 
@@ -36,6 +38,9 @@ def main() -> None:
             q["next_action"],
         )
         print("Follow-up:", result["follow_up"])
+        print("Communication:", result["communication_status"])
+        print("Scheduling:", result["scheduling_status"])
+        print("Audit events:", len(result["audit_history"]))
 
     print("Queue count:", len(queue.json()))
 

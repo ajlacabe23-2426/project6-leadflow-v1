@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 
 class LeadCreate(BaseModel):
@@ -16,6 +16,8 @@ class LeadCreate(BaseModel):
     budget_confirmed: bool = False
     decision_maker: bool = False
     notes: str | None = Field(default=None, max_length=2000)
+    communication_consent: bool = False
+    opted_out: bool = False
 
     @field_validator("name", "source", "service", mode="before")
     @classmethod
@@ -32,9 +34,21 @@ class LeadCreate(BaseModel):
             return normalized or None
         return value
 
+    @model_validator(mode="after")
+    def validate_communication_preferences(self) -> "LeadCreate":
+        if self.communication_consent and self.opted_out:
+            raise ValueError("communication_consent and opted_out cannot both be true")
+        return self
+
 
 LeadRoute = Literal["qualified", "nurture", "needs-info"]
 LeadPriority = Literal["high", "medium", "low"]
+CommunicationStatus = Literal[
+    "draft-ready", "suppressed-no-consent", "suppressed-opted-out"
+]
+SchedulingStatus = Literal[
+    "pending-human-review", "ready-to-schedule", "not-ready", "blocked-missing-info"
+]
 
 
 class QualificationResult(BaseModel):
@@ -46,9 +60,18 @@ class QualificationResult(BaseModel):
     missing_information: list[str]
 
 
+class AuditEvent(BaseModel):
+    event_type: str
+    detail: str
+    occurred_at: str
+
+
 class LeadRecord(BaseModel):
     id: int
     created_at: str
     lead: LeadCreate
     qualification: QualificationResult
     follow_up: str
+    communication_status: CommunicationStatus
+    scheduling_status: SchedulingStatus
+    audit_history: list[AuditEvent]

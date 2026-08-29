@@ -23,8 +23,10 @@ LeadCreate normalized contract
         |
         +--> follow-up generator
         |
+        +--> consent gate + scheduling state
+        |
         v
-SQLite persistence
+ SQLite persistence + audit history + 24-hour duplicate check
         |
         v
 LeadRecord returned to caller
@@ -43,6 +45,17 @@ SQLite is intentionally local for V1. The storage layer is isolated in `app/stor
 
 ### Human-in-the-loop
 High-priority qualified leads route to `human-priority-review`. The system accelerates triage but does not autonomously approve contracts, pricing, or external commitments.
+
+### Communication safety
+A follow-up is always a draft. `communication_status` is `draft-ready` only when
+consent is present. Missing consent or an opt-out suppresses communication. V1.1
+still has no outbound adapter, so no message can be sent by this application.
+
+### Duplicate prevention and auditability
+The storage boundary fingerprints normalized email, service, and source values.
+A matching submission within 24 hours returns the existing record rather than
+creating a second lead or follow-up. Each new record stores intake, qualification,
+draft, and scheduling audit events with timestamps.
 
 ## V2 integration risks to solve before real external actions
 

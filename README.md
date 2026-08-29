@@ -42,7 +42,7 @@ The core qualification decision is deterministic and explainable. AI is intentio
 - Personalized deterministic follow-up drafts
 - SQLite persistence
 - Operator dashboard
-- **Nine regression tests** across scoring and API behavior
+- **Twelve regression tests** across scoring, API behavior, consent, and deduplication
 - GitHub Actions CI
 - Docker packaging
 - Demo smoke-test script
@@ -84,7 +84,7 @@ Run verification:
 python -m compileall -q app tests scripts
 python -m pip check
 python -m pytest -q
-python scripts/demo.py
+python -m scripts.demo
 ```
 
 ## Docker
@@ -109,7 +109,9 @@ Then open `http://127.0.0.1:8000`.
   "timeline_days": 7,
   "budget_confirmed": true,
   "decision_maker": true,
-  "notes": "Needs intake and scheduling automation."
+  "notes": "Needs intake and scheduling automation.",
+  "communication_consent": true,
+  "opted_out": false
 }
 ```
 
@@ -164,12 +166,17 @@ SECURITY.md
 
 The application and regression suite have verified:
 
-- **9/9 tests pass**
+- **12/12 tests pass**
 - health endpoint → HTTP 200
 - sample lead creation → HTTP 201
 - sample lead → **100/100 / qualified / high / human-priority-review**
 - persisted lead appears in operator queue
 - invalid email → HTTP 422
+- duplicate submission within 24 hours → existing record returned; no duplicate stored
+- consent/opt-out conflict → HTTP 422
+- no-consent lead → follow-up retained as a draft but communication suppressed
+- scheduling and communication states recorded explicitly
+- four-event audit history stored with each new lead
 - latest GitHub Actions repair run → **green**
 
 The hardening workflow additionally checks Python compilation, dependency consistency, the demo path, and Docker image construction.
@@ -186,6 +193,7 @@ Not implemented yet:
 - Multi-tenant isolation
 - Managed production persistence
 - Hosted public deployment
+- Operator authentication around the queue and audit records
 
 Those are V2 concerns, not hidden behind demo buttons.
 

@@ -14,6 +14,8 @@ SAMPLE_LEAD = {
     "budget_confirmed": True,
     "decision_maker": True,
     "notes": "Needs intake and scheduling automation.",
+    "communication_consent": True,
+    "opted_out": False,
 }
 
 
@@ -40,6 +42,14 @@ def test_create_and_list_lead(monkeypatch, tmp_path):
     assert body["qualification"]["routing"] == "qualified"
     assert body["qualification"]["priority"] == "high"
     assert body["qualification"]["next_action"] == "human-priority-review"
+    assert body["communication_status"] == "draft-ready"
+    assert body["scheduling_status"] == "pending-human-review"
+    assert [event["event_type"] for event in body["audit_history"]] == [
+        "lead.received",
+        "lead.qualified",
+        "followup.drafted",
+        "scheduling.routed",
+    ]
 
     assert listed.status_code == 200
     assert len(listed.json()) == 1
@@ -49,6 +59,38 @@ def test_create_and_list_lead(monkeypatch, tmp_path):
 def test_invalid_email_fails_validation(monkeypatch, tmp_path):
     monkeypatch.setenv("LEADFLOW_DB_PATH", str(tmp_path / "invalid.db"))
     payload = {**SAMPLE_LEAD, "email": "not-an-email"}
+    with TestClient(app) as client:
+        response = client.post("/api/leads", json=payload)
+
+    assert response.status_code == 422
+
+
+def test_duplicate_submission_returns_existing_record(monkeypatch, tmp_path):
+    monkeypatch.setenv("LEADFLOW_DB_PATH", str(tmp_path / "duplicate.db"))
+    with TestClient(app) as client:
+        first = client.post("/api/leads", json=SAMPLE_LEAD)
+        duplicate = client.post("/api/leads", json=SAMPLE_LEAD)
+        listed = client.get("/api/leads")
+
+    assert first.status_code == 201
+    assert duplicate.status_code == 201
+    assert duplicate.json()["id"] == first.json()["id"]
+    assert len(listed.json()) == 1
+
+
+def test_no_consent_suppresses_communication(monkeypatch, tmp_path):
+    monkeypatch.setenv("LEADFLOW_DB_PATH", str(tmp_path / "consent.db"))
+    payload = {**SAMPLE_LEAD, "communication_consent": False}
+    with TestClient(app) as client:
+        response = client.post("/api/leads", json=payload)
+
+    assert response.status_code == 201
+    assert response.json()["communication_status"] == "suppressed-no-consent"
+
+
+def test_consent_and_opt_out_cannot_conflict(monkeypatch, tmp_path):
+    monkeypatch.setenv("LEADFLOW_DB_PATH", str(tmp_path / "preferences.db"))
+    payload = {**SAMPLE_LEAD, "communication_consent": True, "opted_out": True}
     with TestClient(app) as client:
         response = client.post("/api/leads", json=payload)
 
