@@ -1,44 +1,67 @@
-# LeadFlow — First 20 Prospect Queue
+# LeadFlow — First 20 Research Queue
 
-Purpose: identify local Bloomington-Normal businesses that appear, from public signals, to fit the first-customer profile for LeadFlow. Scores are hypotheses to prioritize discovery; they are not claims that a business has a lead-handling problem.
+> **Status correction (2026-08-29): UNVERIFIED MARKET RESEARCH QUEUE — NOT QUALIFIED SALES PROSPECTS.**
+>
+> This list is preserved because it is useful research history, but the original 6/7 and 7/7 fit scores were based on public business-model signals rather than verified evidence of an unsolved lead-management problem. They must not be interpreted as evidence that these businesses need LeadFlow. Before outreach as a sales prospect, each company must be checked for its existing CRM/FSM/lead-management stack and, ultimately, the problem must be confirmed through operator evidence.
 
-## Scoring
+Purpose: identify local Bloomington-Normal businesses worth researching to determine whether LeadFlow addresses a real, unsolved problem.
 
-1 point each for: visible inbound-lead business model, meaningful lead value, signs of multiple/manual intake, response speed plausibly matters, qualification is non-trivial, reachable decision maker, pilot can run without replacing entire stack.
+## Original hypothesis scoring
 
-## Priority 10
+The original score awarded 1 point each for: visible inbound-lead business model, meaningful lead value, signs of multiple/manual intake, response speed plausibly matters, qualification is non-trivial, reachable decision maker, and apparent ability to pilot without replacing an entire stack.
 
-1. Messing Roofing & Construction — Roofing — 7/7 — High-value estimate/insurance leads; 24/7 presence; qualification and urgency likely matter.
-2. Redeemed Roofing, LLC — Roofing — 7/7 — Residential/commercial roofing plus insurance mediation; strong qualification complexity.
-3. Cupples Construction and Roofing — Roofing/exteriors — 7/7 — Estimate-driven residential/commercial work; clear local decision-maker environment.
-4. Custom Air Company — HVAC — 7/7 — 24/7 residential/commercial service; emergency and replacement leads create speed/priority differences.
-5. Bratcher Heating & Air Conditioning — HVAC — 7/7 — 24/7 service with repair, installation and commercial demand; strong routing opportunity.
-6. NewWay Drain Cleaning — Plumbing/drain — 7/7 — 24/7 emergency-response model with substantial inbound service demand.
-7. Covenant Plumbing — Plumbing/remodeling — 6/7 — Multiple service types and option-based recommendations create qualification/routing possibilities.
-8. Lance & Sons Electricians — Electrical — 6/7 — 24/7 residential/commercial work; urgent vs planned project differentiation.
-9. Bellas Landscaping — Landscaping/design-build — 6/7 — Higher-value design/build inquiries with service/project qualification needs.
-10. Serenity Creek Design & Landscaping — Landscaping/design-build — 6/7 — Consultation/project-oriented work; useful for testing non-emergency lead qualification.
+**Important:** these criteria measure theoretical workflow relevance, not unmet need. A company can score 7/7 and still be a poor customer because an existing CRM/FSM already solves the workflow.
 
-## Secondary 10
+## Original Priority 10 — now research candidates only
 
-11. Hermes Service and Sales — HVAC — 6/7 — Residential, commercial and industrial HVAC; potentially complex qualification.
-12. Platinum Plumbing Inc — Plumbing — 6/7 — Residential plumbing, drains, water systems and project options.
-13. Max Volts Electricians LLC — Electrical — 6/7 — 24/7 troubleshooting and upgrade work; useful response-speed case.
-14. Horizon Electric USA — Electrical — 6/7 — Broad Central Illinois service area; residential/commercial project intake.
-15. Chizmar Landscaping — Landscaping/hardscaping — 6/7 — Residential/commercial design and construction inquiries.
-16. INSPYR Agency — Marketing — 5/7 — Generates leads for clients and may provide channel-partner insight; likely more sophisticated existing tooling.
-17. Marisol Marketing — Marketing/web — 5/7 — Consulting/project leads; useful agency/operator interview and possible referral partner.
-18. Cybernautic Web Design — Web/marketing — 5/7 — Lead-generation services make it strategically useful, but may already use mature systems.
-19. Wayfinder — Sales/business consulting — 5/7 — Sales-process expertise makes it valuable for discovery/feedback; less ideal as the first end-user pilot.
-20. Integrity Technology Solutions — IT/cybersecurity services — 5/7 — Professional-service lead qualification is relevant, but longer/more complex B2B sales cycle may make first pilot harder.
+1. Messing Roofing & Construction — Roofing — originally 7/7
+2. Redeemed Roofing, LLC — Roofing — originally 7/7
+3. Cupples Construction and Roofing — Roofing/exteriors — originally 7/7
+4. Custom Air Company — HVAC — originally 7/7
+5. Bratcher Heating & Air Conditioning — HVAC — originally 7/7
+6. NewWay Drain Cleaning — Plumbing/drain — originally 7/7
+7. Covenant Plumbing — Plumbing/remodeling — originally 6/7
+8. Lance & Sons Electricians — Electrical — originally 6/7
+9. Bellas Landscaping — Landscaping/design-build — originally 6/7
+10. Serenity Creek Design & Landscaping — Landscaping/design-build — originally 6/7
 
-## Outreach order
+## Secondary 10 — research candidates only
 
-Wave 1: prospects 1-5.
-Wave 2: prospects 6-10 after learning from initial outreach.
-Wave 3: prospects 11-15 if more end-user interviews are needed.
-Wave 4: prospects 16-20 primarily for market insight, referrals, partnerships, or alternate use cases.
+11. Hermes Service and Sales — HVAC — originally 6/7
+12. Platinum Plumbing Inc — Plumbing — originally 6/7
+13. Max Volts Electricians LLC — Electrical — originally 6/7
+14. Horizon Electric USA — Electrical — originally 6/7
+15. Chizmar Landscaping — Landscaping/hardscaping — originally 6/7
+16. INSPYR Agency — Marketing — originally 5/7
+17. Marisol Marketing — Marketing/web — originally 5/7
+18. Cybernautic Web Design — Web/marketing — originally 5/7
+19. Wayfinder — Sales/business consulting — originally 5/7
+20. Integrity Technology Solutions — IT/cybersecurity services — originally 5/7
+
+## Replacement qualification standard
+
+A company should move from **research candidate** to **qualified discovery prospect** only when evidence supports at least one meaningful gap such as:
+
+- no CRM/FSM/lead-management system is in use;
+- existing system does not cover a material intake/follow-up workflow;
+- software is purchased but the workflow remains manual or poorly configured;
+- lead information is fragmented between channels/systems;
+- the business has a documented operational problem that current tooling does not solve;
+- an operator explicitly identifies a measurable pain and is willing to investigate it.
+
+Public evidence that a company already uses a capable CRM/FSM should lower priority unless a specific uncovered problem is identified.
+
+## Research sequence
+
+For each candidate:
+
+1. Determine company size using defensible public evidence where available.
+2. Look for explicit evidence of CRM/FSM/field-service/marketing automation usage.
+3. Inspect the customer intake experience and identify only observable facts.
+4. Compare observable workflow against capabilities of likely/current software.
+5. Record **unknown** rather than infer an operational failure.
+6. Use discovery interviews to confirm the actual problem before proposing LeadFlow.
 
 ## Discovery rule
 
-Do not tell a prospect that LeadFlow will increase their revenue or that they are losing leads. Ask whether those problems exist and capture evidence. The first outreach goal is a 15-20 minute discovery conversation, not a software sale.
+Do not tell a company that LeadFlow will increase revenue, that it is losing leads, or that its CRM is inadequate without evidence. The purpose of discovery is to find a real problem, including the possibility that LeadFlow's current problem is already adequately solved and the product must narrow or pivot.
