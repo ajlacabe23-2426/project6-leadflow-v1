@@ -4,6 +4,8 @@ import json
 import hashlib
 import os
 import sqlite3
+from contextlib import contextmanager
+from collections.abc import Iterator
 from pathlib import Path
 
 from app.models import (
@@ -23,16 +25,23 @@ def _db_path() -> Path:
     return Path(os.getenv("LEADFLOW_DB_PATH", DEFAULT_DB_PATH))
 
 
-def _connect() -> sqlite3.Connection:
+@contextmanager
+def _connect() -> Iterator[sqlite3.Connection]:
     path = _db_path()
     path.parent.mkdir(parents=True, exist_ok=True)
     connection = sqlite3.connect(path)
     connection.row_factory = sqlite3.Row
-    return connection
+    try:
+        connection.execute("PRAGMA foreign_keys = ON")
+        with connection:
+            yield connection
+    finally:
+        connection.close()
 
 
 def initialize_database() -> None:
     with _connect() as connection:
+        connection.execute("BEGIN IMMEDIATE")
         connection.execute(
             """
             CREATE TABLE IF NOT EXISTS leads (
@@ -72,13 +81,32 @@ def initialize_database() -> None:
         connection.execute(
             "CREATE INDEX IF NOT EXISTS idx_leads_fingerprint ON leads(fingerprint)"
         )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS intake_requests (
+                request_key TEXT PRIMARY KEY,
+                request_hash TEXT NOT NULL,
+                lead_id INTEGER NOT NULL REFERENCES leads(id)
+            )
+            """
+        )
 
 
-def _fingerprint(lead: LeadCreate) -> str:
+def _legacy_fingerprint(lead: LeadCreate) -> str:
     identity = "|".join(
         [str(lead.email).strip().lower(), lead.service.strip().lower(), lead.source.lower()]
     )
     return hashlib.sha256(identity.encode("utf-8")).hexdigest()
+
+
+def _fingerprint(lead: LeadCreate) -> str:
+    # An intake retry must match the entire validated request, including consent.
+    payload = json.dumps(lead.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+class IdempotencyConflict(ValueError):
+    """A request key was reused with different validated input."""
 
 
 def _communication_status(lead: LeadCreate) -> CommunicationStatus:
@@ -103,19 +131,39 @@ def save_lead(
     lead: LeadCreate,
     qualification: QualificationResult,
     follow_up: str,
+    request_key: str | None = None,
 ) -> LeadRecord:
     fingerprint = _fingerprint(lead)
     with _connect() as connection:
-        duplicate = connection.execute(
-            """
-            SELECT * FROM leads
-            WHERE fingerprint = ? AND created_at >= datetime('now', '-24 hours')
-            ORDER BY id DESC LIMIT 1
-            """,
-            (fingerprint,),
-        ).fetchone()
-        if duplicate is not None:
-            return _row_to_record(duplicate)
+        # Serialize the lookup and insert across processes, not only threads.
+        connection.execute("BEGIN IMMEDIATE")
+        if request_key is not None:
+            previous = connection.execute(
+                "SELECT request_hash, lead_id FROM intake_requests WHERE request_key = ?",
+                (request_key,),
+            ).fetchone()
+            if previous is not None:
+                if previous["request_hash"] != fingerprint:
+                    raise IdempotencyConflict("Idempotency key already used for different input.")
+                row = connection.execute(
+                    "SELECT * FROM leads WHERE id = ?", (previous["lead_id"],)
+                ).fetchone()
+                if row is None:
+                    raise RuntimeError("Idempotent intake record is unavailable.")
+                return _row_to_record(row)
+        else:
+            candidates = connection.execute(
+                """
+                SELECT * FROM leads
+                WHERE fingerprint IN (?, ?) AND created_at >= datetime('now', '-24 hours')
+                ORDER BY id DESC
+                """,
+                (fingerprint, _legacy_fingerprint(lead)),
+            ).fetchall()
+            for candidate in candidates:
+                record = _row_to_record(candidate)
+                if _fingerprint(record.lead) == fingerprint:
+                    return record
 
         communication_status = _communication_status(lead)
         scheduling_status = _scheduling_status(qualification)
@@ -163,6 +211,11 @@ def save_lead(
             "SELECT * FROM leads WHERE id = ?",
             (cursor.lastrowid,),
         ).fetchone()
+        if request_key is not None:
+            connection.execute(
+                "INSERT INTO intake_requests (request_key, request_hash, lead_id) VALUES (?, ?, ?)",
+                (request_key, fingerprint, cursor.lastrowid),
+            )
 
     if row is None:
         raise RuntimeError("Lead was not persisted.")

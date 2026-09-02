@@ -11,7 +11,7 @@ class LeadCreate(BaseModel):
     phone: str | None = Field(default=None, max_length=40)
     source: str = Field(default="website", min_length=2, max_length=80)
     service: str = Field(min_length=2, max_length=160)
-    estimated_value: float | None = Field(default=None, ge=0)
+    estimated_value: float | None = Field(default=None, ge=0, allow_inf_nan=False)
     timeline_days: int | None = Field(default=None, ge=1, le=3650)
     budget_confirmed: bool = False
     decision_maker: bool = False
