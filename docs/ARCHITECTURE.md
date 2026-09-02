@@ -26,7 +26,7 @@ LeadCreate normalized contract
         +--> consent gate + scheduling state
         |
         v
- SQLite persistence + audit history + 24-hour duplicate check
+ SQLite persistence + audit history + atomic request-key/retry check
         |
         v
 LeadRecord returned to caller
@@ -52,14 +52,17 @@ consent is present. Missing consent or an opt-out suppresses communication. V1.1
 still has no outbound adapter, so no message can be sent by this application.
 
 ### Duplicate prevention and auditability
-The storage boundary fingerprints normalized email, service, and source values.
-A matching submission within 24 hours returns the existing record rather than
-creating a second lead or follow-up. Each new record stores intake, qualification,
-draft, and scheduling audit events with timestamps.
+The storage boundary accepts an optional `Idempotency-Key`. An exact retry returns
+the original record; reuse with different validated input returns HTTP 409. Without
+a key, the complete validated request must match within 24 hours, including consent.
+Lookup, insert, and request-key mapping share a serialized transaction. Each new
+record stores intake, qualification, draft, and scheduling audit events with timestamps.
+See [the intake reliability review](RELIABILITY_REVIEW_2026-09-02.md) for migration,
+retention, concurrency verification, and contact-level suppression limitations.
 
 ## V2 integration risks to solve before real external actions
 
-1. Idempotency keys for repeated form submissions and webhook retries.
+1. Tenant-scoped provider/webhook idempotency beyond local intake request keys.
 2. Durable outbound-action queue.
 3. Retry policy and dead-letter handling.
 4. Provider authentication and secret management.
