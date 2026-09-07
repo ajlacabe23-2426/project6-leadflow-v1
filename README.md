@@ -172,7 +172,8 @@ The application and regression suite have verified:
 - sample lead → **100/100 / qualified / high / human-priority-review**
 - persisted lead appears in operator queue
 - invalid email → HTTP 422
-- duplicate submission within 24 hours → existing record returned; no duplicate stored
+- exact duplicate submission within 24 hours → existing record returned; changed input is retained
+- optional `Idempotency-Key` → atomic retries; conflicting payload reuse returns HTTP 409
 - consent/opt-out conflict → HTTP 422
 - no-consent lead → follow-up retained as a draft but communication suppressed
 - scheduling and communication states recorded explicitly
