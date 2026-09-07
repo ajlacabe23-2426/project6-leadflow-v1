@@ -3,16 +3,23 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Annotated
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
 
 from fastapi import FastAPI, Header, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.followup import generate_follow_up
-from app.models import LeadCreate, LeadRecord
+from app.lifecycle import InvalidLifecycleTransition
+from app.models import LeadCreate, LeadRecord, LifecycleTransitionRequest
 from app.scoring import qualify_lead
-from app.storage import IdempotencyConflict, initialize_database, list_leads, save_lead
+from app.storage import (
+    IdempotencyConflict,
+    LeadNotFound,
+    initialize_database,
+    list_leads,
+    save_lead,
+    transition_lead,
+)
 
 
 @asynccontextmanager
@@ -23,10 +30,10 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="LeadFlow V1",
-    version="1.0.0",
+    version="1.1.0",
     description=(
-        "Lead intake, deterministic qualification, follow-up drafting, "
-        "and operator routing."
+        "Lead intake, deterministic qualification, auditable lifecycle control, "
+        "follow-up drafting, and operator routing."
     ),
     lifespan=lifespan,
 )
@@ -65,6 +72,23 @@ def create_lead(
 @app.get("/api/leads", response_model=list[LeadRecord])
 def get_leads() -> list[LeadRecord]:
     return list_leads()
+
+
+@app.patch("/api/leads/{lead_id}/state", response_model=LeadRecord)
+def change_lead_state(
+    lead_id: int, request: LifecycleTransitionRequest
+) -> LeadRecord:
+    try:
+        return transition_lead(
+            lead_id=lead_id,
+            to_state=request.to_state,
+            reason_code=request.reason_code,
+            correlation_id=request.correlation_id,
+        )
+    except LeadNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except InvalidLifecycleTransition as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 @app.get("/", include_in_schema=False)

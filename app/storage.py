@@ -1,17 +1,24 @@
 from __future__ import annotations
 
-import json
 import hashlib
+import json
 import os
 import sqlite3
-from contextlib import contextmanager
 from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 
+from app.lifecycle import (
+    InvalidLifecycleTransition,
+    initial_state_for_intake,
+    transition_reason_for_intake,
+    validate_transition,
+)
 from app.models import (
     AuditEvent,
     CommunicationStatus,
     LeadCreate,
+    LeadLifecycleState,
     LeadRecord,
     QualificationResult,
     SchedulingStatus,
@@ -53,6 +60,7 @@ def initialize_database() -> None:
                 fingerprint TEXT,
                 communication_status TEXT NOT NULL DEFAULT 'suppressed-no-consent',
                 scheduling_status TEXT NOT NULL DEFAULT 'not-ready',
+                lifecycle_state TEXT NOT NULL DEFAULT 'received',
                 audit_json TEXT NOT NULL DEFAULT '[]'
             )
             """
@@ -71,6 +79,10 @@ def initialize_database() -> None:
                 "ALTER TABLE leads ADD COLUMN scheduling_status TEXT NOT NULL "
                 "DEFAULT 'not-ready'"
             ),
+            "lifecycle_state": (
+                "ALTER TABLE leads ADD COLUMN lifecycle_state TEXT NOT NULL "
+                "DEFAULT 'received'"
+            ),
             "audit_json": (
                 "ALTER TABLE leads ADD COLUMN audit_json TEXT NOT NULL DEFAULT '[]'"
             ),
@@ -80,6 +92,9 @@ def initialize_database() -> None:
                 connection.execute(statement)
         connection.execute(
             "CREATE INDEX IF NOT EXISTS idx_leads_fingerprint ON leads(fingerprint)"
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_leads_lifecycle_state ON leads(lifecycle_state)"
         )
         connection.execute(
             """
@@ -100,13 +115,18 @@ def _legacy_fingerprint(lead: LeadCreate) -> str:
 
 
 def _fingerprint(lead: LeadCreate) -> str:
-    # An intake retry must match the entire validated request, including consent.
-    payload = json.dumps(lead.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
+    payload = json.dumps(
+        lead.model_dump(mode="json"), sort_keys=True, separators=(",", ":")
+    )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 class IdempotencyConflict(ValueError):
     """A request key was reused with different validated input."""
+
+
+class LeadNotFound(LookupError):
+    """A requested lead record does not exist."""
 
 
 def _communication_status(lead: LeadCreate) -> CommunicationStatus:
@@ -135,7 +155,6 @@ def save_lead(
 ) -> LeadRecord:
     fingerprint = _fingerprint(lead)
     with _connect() as connection:
-        # Serialize the lookup and insert across processes, not only threads.
         connection.execute("BEGIN IMMEDIATE")
         if request_key is not None:
             previous = connection.execute(
@@ -144,7 +163,9 @@ def save_lead(
             ).fetchone()
             if previous is not None:
                 if previous["request_hash"] != fingerprint:
-                    raise IdempotencyConflict("Idempotency key already used for different input.")
+                    raise IdempotencyConflict(
+                        "Idempotency key already used for different input."
+                    )
                 row = connection.execute(
                     "SELECT * FROM leads WHERE id = ?", (previous["lead_id"],)
                 ).fetchone()
@@ -167,16 +188,29 @@ def save_lead(
 
         communication_status = _communication_status(lead)
         scheduling_status = _scheduling_status(qualification)
+        lifecycle_state = initial_state_for_intake(lead, qualification)
+        validate_transition("received", lifecycle_state)
+        transition_reason = transition_reason_for_intake(lead, qualification)
+        correlation_id = request_key or f"intake:{fingerprint[:16]}"
         now = connection.execute("SELECT CURRENT_TIMESTAMP").fetchone()[0]
         audit_history = [
-            AuditEvent(event_type="lead.received", detail="Validated intake accepted", occurred_at=now),
+            AuditEvent(
+                event_type="lead.received",
+                detail="Validated intake accepted",
+                occurred_at=now,
+            ),
             AuditEvent(
                 event_type="lead.qualified",
                 detail=(
                     f"Deterministic score={qualification.score}; "
-                    f"route={qualification.routing}; priority={qualification.priority}"
+                    f"route={qualification.routing}; priority={qualification.priority}; "
+                    f"lifecycle={lifecycle_state}"
                 ),
                 occurred_at=now,
+                from_state="received",
+                to_state=lifecycle_state,
+                reason_code=transition_reason,
+                correlation_id=correlation_id,
             ),
             AuditEvent(
                 event_type="followup.drafted",
@@ -193,9 +227,9 @@ def save_lead(
             """
             INSERT INTO leads (
                 lead_json, qualification_json, follow_up, fingerprint,
-                communication_status, scheduling_status, audit_json
+                communication_status, scheduling_status, lifecycle_state, audit_json
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 lead.model_dump_json(),
@@ -204,12 +238,12 @@ def save_lead(
                 fingerprint,
                 communication_status,
                 scheduling_status,
+                lifecycle_state,
                 json.dumps([event.model_dump() for event in audit_history]),
             ),
         )
         row = connection.execute(
-            "SELECT * FROM leads WHERE id = ?",
-            (cursor.lastrowid,),
+            "SELECT * FROM leads WHERE id = ?", (cursor.lastrowid,)
         ).fetchone()
         if request_key is not None:
             connection.execute(
@@ -219,15 +253,60 @@ def save_lead(
 
     if row is None:
         raise RuntimeError("Lead was not persisted.")
-
     return _row_to_record(row)
+
+
+def transition_lead(
+    lead_id: int,
+    to_state: LeadLifecycleState,
+    reason_code: str,
+    correlation_id: str | None = None,
+) -> LeadRecord:
+    """Atomically validate, persist, and audit one lifecycle transition."""
+    with _connect() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute(
+            "SELECT * FROM leads WHERE id = ?", (lead_id,)
+        ).fetchone()
+        if row is None:
+            raise LeadNotFound(f"Lead {lead_id} was not found.")
+
+        record = _row_to_record(row)
+        from_state = record.lifecycle_state
+        if not validate_transition(from_state, to_state):
+            return record
+
+        now = connection.execute("SELECT CURRENT_TIMESTAMP").fetchone()[0]
+        event = AuditEvent(
+            event_type="lifecycle.transition",
+            detail=f"Lifecycle transition {from_state} -> {to_state}",
+            occurred_at=now,
+            from_state=from_state,
+            to_state=to_state,
+            reason_code=reason_code,
+            correlation_id=correlation_id or f"transition:{lead_id}:{len(record.audit_history) + 1}",
+        )
+        updated_history = [*record.audit_history, event]
+        connection.execute(
+            "UPDATE leads SET lifecycle_state = ?, audit_json = ? WHERE id = ?",
+            (
+                to_state,
+                json.dumps([item.model_dump() for item in updated_history]),
+                lead_id,
+            ),
+        )
+        updated = connection.execute(
+            "SELECT * FROM leads WHERE id = ?", (lead_id,)
+        ).fetchone()
+
+    if updated is None:
+        raise RuntimeError("Lead transition was not persisted.")
+    return _row_to_record(updated)
 
 
 def list_leads() -> list[LeadRecord]:
     with _connect() as connection:
-        rows = connection.execute(
-            "SELECT * FROM leads ORDER BY id DESC"
-        ).fetchall()
+        rows = connection.execute("SELECT * FROM leads ORDER BY id DESC").fetchall()
     return [_row_to_record(row) for row in rows]
 
 
@@ -242,8 +321,19 @@ def _row_to_record(row: sqlite3.Row) -> LeadRecord:
         follow_up=row["follow_up"],
         communication_status=row["communication_status"],
         scheduling_status=row["scheduling_status"],
+        lifecycle_state=row["lifecycle_state"],
         audit_history=[
-            AuditEvent.model_validate(event)
-            for event in json.loads(row["audit_json"])
+            AuditEvent.model_validate(event) for event in json.loads(row["audit_json"])
         ],
     )
+
+
+__all__ = [
+    "IdempotencyConflict",
+    "InvalidLifecycleTransition",
+    "LeadNotFound",
+    "initialize_database",
+    "list_leads",
+    "save_lead",
+    "transition_lead",
+]

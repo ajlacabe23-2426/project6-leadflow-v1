@@ -49,6 +49,18 @@ CommunicationStatus = Literal[
 SchedulingStatus = Literal[
     "pending-human-review", "ready-to-schedule", "not-ready", "blocked-missing-info"
 ]
+LeadLifecycleState = Literal[
+    "received",
+    "awaiting-information",
+    "ready-for-review",
+    "qualified",
+    "nurture",
+    "awaiting-owner-action",
+    "ready-to-schedule",
+    "scheduled",
+    "closed",
+    "suppressed",
+]
 
 
 class QualificationResult(BaseModel):
@@ -64,6 +76,18 @@ class AuditEvent(BaseModel):
     event_type: str
     detail: str
     occurred_at: str
+    from_state: LeadLifecycleState | None = None
+    to_state: LeadLifecycleState | None = None
+    reason_code: str | None = None
+    correlation_id: str | None = None
+
+
+class LifecycleTransitionRequest(BaseModel):
+    to_state: LeadLifecycleState
+    reason_code: str = Field(min_length=1, max_length=120, pattern=r"^[A-Za-z0-9._:-]+$")
+    correlation_id: str | None = Field(
+        default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9._:-]+$"
+    )
 
 
 class LeadRecord(BaseModel):
@@ -74,4 +98,5 @@ class LeadRecord(BaseModel):
     follow_up: str
     communication_status: CommunicationStatus
     scheduling_status: SchedulingStatus
+    lifecycle_state: LeadLifecycleState
     audit_history: list[AuditEvent]
