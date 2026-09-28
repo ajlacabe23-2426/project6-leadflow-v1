@@ -43,6 +43,8 @@ class LeadCreate(BaseModel):
 
 LeadRoute = Literal["qualified", "nurture", "needs-info"]
 LeadPriority = Literal["high", "medium", "low"]
+ExternalActionType = Literal["email-follow-up", "schedule-request"]
+ExternalActionStatus = Literal["pending-human-review"]
 CommunicationStatus = Literal[
     "draft-ready", "suppressed-no-consent", "suppressed-opted-out"
 ]
@@ -88,6 +90,20 @@ class LifecycleTransitionRequest(BaseModel):
     correlation_id: str | None = Field(
         default=None, min_length=1, max_length=128, pattern=r"^[A-Za-z0-9._:-]+$"
     )
+
+
+class ExternalActionIntentRequest(BaseModel):
+    action_type: ExternalActionType
+
+
+class ExternalActionIntent(BaseModel):
+    id: int
+    lead_id: int
+    action_type: ExternalActionType
+    status: ExternalActionStatus
+    idempotency_key: str
+    attempt_count: int = Field(ge=0)
+    created_at: str
 
 
 class LeadRecord(BaseModel):
