@@ -98,6 +98,27 @@ def initialize_database() -> None:
         )
         connection.execute(
             """
+            CREATE TABLE IF NOT EXISTS outbound_actions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                lead_id INTEGER NOT NULL REFERENCES leads(id),
+                action_key TEXT NOT NULL UNIQUE,
+                action_type TEXT NOT NULL,
+                status TEXT NOT NULL DEFAULT 'queued',
+                attempts INTEGER NOT NULL DEFAULT 0,
+                max_attempts INTEGER NOT NULL DEFAULT 3,
+                next_attempt_at TEXT,
+                last_error_code TEXT,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS idx_outbound_actions_due "
+            "ON outbound_actions(status, next_attempt_at, id)"
+        )
+        connection.execute(
+            """
             CREATE TABLE IF NOT EXISTS intake_requests (
                 request_key TEXT PRIMARY KEY,
                 request_hash TEXT NOT NULL,
