@@ -10,8 +10,26 @@ from fastapi.responses import FileResponse, JSONResponse
 
 from app.followup import generate_follow_up
 from app.lifecycle import InvalidLifecycleTransition
-from app.models import LeadCreate, LeadRecord, LifecycleTransitionRequest
+from app.models import (
+    LeadCreate,
+    LeadRecord,
+    LifecycleTransitionRequest,
+    OutboundAction,
+    OutboundActionRequest,
+    OutboundActionResultRequest,
+)
 from app.scoring import qualify_lead
+from app.outbox import (
+    InvalidOutboundActionTransition,
+    OutboundActionNotFound,
+    OutboundActionPolicyBlocked,
+    OutboxIdempotencyConflict,
+    cancel_outbound_action,
+    claim_next_outbound_action,
+    enqueue_outbound_action,
+    list_outbound_actions,
+    record_outbound_result,
+)
 from app.storage import (
     IdempotencyConflict,
     LeadNotFound,
@@ -30,7 +48,7 @@ async def lifespan(_: FastAPI):
 
 app = FastAPI(
     title="LeadFlow V1",
-    version="1.1.0",
+    version="1.2.0",
     description=(
         "Lead intake, deterministic qualification, auditable lifecycle control, "
         "follow-up drafting, and operator routing."
@@ -88,6 +106,50 @@ def change_lead_state(
     except LeadNotFound as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except InvalidLifecycleTransition as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@app.post("/api/leads/{lead_id}/actions", response_model=OutboundAction, status_code=201)
+def queue_outbound_action(lead_id: int, request: OutboundActionRequest) -> OutboundAction:
+    """Queue an action intent only; no provider call occurs in Project 6 V1."""
+    try:
+        return enqueue_outbound_action(lead_id, request)
+    except LeadNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except (OutboundActionPolicyBlocked, OutboxIdempotencyConflict) as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@app.get("/api/outbox", response_model=list[OutboundAction])
+def get_outbox() -> list[OutboundAction]:
+    return list_outbound_actions()
+
+
+@app.post("/api/outbox/claim", response_model=OutboundAction | None)
+def claim_outbox_action() -> OutboundAction | None:
+    """Local reliability-lab claim endpoint; it does not send email or book anything."""
+    return claim_next_outbound_action()
+
+
+@app.patch("/api/outbox/{action_id}/result", response_model=OutboundAction)
+def complete_outbox_action(
+    action_id: int, request: OutboundActionResultRequest
+) -> OutboundAction:
+    try:
+        return record_outbound_result(action_id, request)
+    except OutboundActionNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except InvalidOutboundActionTransition as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@app.post("/api/outbox/{action_id}/cancel", response_model=OutboundAction)
+def cancel_outbox_action(action_id: int) -> OutboundAction:
+    try:
+        return cancel_outbound_action(action_id)
+    except OutboundActionNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except InvalidOutboundActionTransition as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
 
 
