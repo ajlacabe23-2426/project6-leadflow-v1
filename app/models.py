@@ -100,3 +100,47 @@ class LeadRecord(BaseModel):
     scheduling_status: SchedulingStatus
     lifecycle_state: LeadLifecycleState
     audit_history: list[AuditEvent]
+
+
+OutboundActionType = Literal["follow-up-email", "schedule-discovery"]
+OutboundActionStatus = Literal[
+    "queued", "in-progress", "retry-wait", "succeeded", "dead-letter", "cancelled"
+]
+
+
+class OutboundActionRequest(BaseModel):
+    action_key: str = Field(
+        min_length=1, max_length=128, pattern=r"^[A-Za-z0-9._:-]+$"
+    )
+    action_type: OutboundActionType
+    max_attempts: int = Field(default=3, ge=1, le=5)
+
+
+class OutboundActionResultRequest(BaseModel):
+    success: bool
+    retryable: bool = False
+    error_code: str | None = Field(
+        default=None, min_length=1, max_length=120, pattern=r"^[A-Za-z0-9._:-]+$"
+    )
+
+    @model_validator(mode="after")
+    def validate_result(self) -> "OutboundActionResultRequest":
+        if self.success and (self.retryable or self.error_code is not None):
+            raise ValueError("successful actions cannot include retry/error state")
+        if not self.success and self.error_code is None:
+            raise ValueError("failed actions require a bounded error_code")
+        return self
+
+
+class OutboundAction(BaseModel):
+    id: int
+    lead_id: int
+    action_key: str
+    action_type: OutboundActionType
+    status: OutboundActionStatus
+    attempts: int = Field(ge=0)
+    max_attempts: int = Field(ge=1, le=5)
+    next_attempt_at: str | None = None
+    last_error_code: str | None = None
+    created_at: str
+    updated_at: str
