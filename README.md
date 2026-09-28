@@ -42,6 +42,7 @@ The core qualification decision is deterministic and explainable. AI is intentio
 - Personalized deterministic follow-up drafts
 - SQLite persistence
 - Operator dashboard
+- Durable local provider-independent outbox with idempotent queueing, atomic claim, bounded retry/backoff, dead-letter, cancellation, and explicit no-send semantics
 - **Twelve regression tests** across scoring, API behavior, consent, and deduplication
 - GitHub Actions CI
 - Docker packaging
@@ -182,6 +183,8 @@ The application and regression suite have verified:
 
 The hardening workflow additionally checks Python compilation, dependency consistency, the demo path, and Docker image construction.
 
+The development outbox records external-action intent but has **no email, SMS, calendar, CRM, or other provider adapter**. Its claim/result endpoints exist only to exercise retry, idempotency, cancellation, and dead-letter behavior locally before real side effects are ever enabled.
+
 ## V1 boundaries
 
 Not implemented yet:
@@ -189,7 +192,7 @@ Not implemented yet:
 - Real outbound email/SMS delivery
 - Real calendar booking
 - CRM synchronization
-- External-action idempotency/retry queue
+- Real provider adapter execution (the local durable outbox state machine is implemented, but it cannot send/book anything)
 - Production authentication/authorization
 - Multi-tenant isolation
 - Managed production persistence
