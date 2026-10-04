@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   repository-security:
-    name: Repository security
+    name: Security monitor
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
