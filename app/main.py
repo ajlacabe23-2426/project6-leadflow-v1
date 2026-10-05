@@ -30,6 +30,20 @@ from app.outbox import (
     list_outbound_actions,
     record_outbound_result,
 )
+from app.operations import (
+    LeadAssignment,
+    LeadAssignmentRequest,
+    LeadObligation,
+    LeadObligationRequest,
+    ObligationNotFound,
+    assign_lead,
+    complete_obligation,
+    create_obligation,
+    initialize_operations_tables,
+    list_assignments,
+    list_obligations,
+    list_overdue_obligations,
+)
 from app.storage import (
     IdempotencyConflict,
     LeadNotFound,
@@ -43,6 +57,7 @@ from app.storage import (
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     initialize_database()
+    initialize_operations_tables()
     yield
 
 
@@ -107,6 +122,55 @@ def change_lead_state(
         raise HTTPException(status_code=404, detail=str(error)) from error
     except InvalidLifecycleTransition as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@app.post("/api/leads/{lead_id}/assignments", response_model=LeadAssignment, status_code=201)
+def create_lead_assignment(
+    lead_id: int, request: LeadAssignmentRequest
+) -> LeadAssignment:
+    try:
+        return assign_lead(lead_id, request)
+    except LeadNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.get("/api/leads/{lead_id}/assignments", response_model=list[LeadAssignment])
+def get_lead_assignments(lead_id: int) -> list[LeadAssignment]:
+    try:
+        return list_assignments(lead_id)
+    except LeadNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.post("/api/leads/{lead_id}/obligations", response_model=LeadObligation, status_code=201)
+def create_lead_obligation(
+    lead_id: int, request: LeadObligationRequest
+) -> LeadObligation:
+    try:
+        return create_obligation(lead_id, request)
+    except LeadNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.get("/api/leads/{lead_id}/obligations", response_model=list[LeadObligation])
+def get_lead_obligations(lead_id: int) -> list[LeadObligation]:
+    try:
+        return list_obligations(lead_id)
+    except LeadNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.get("/api/obligations/overdue", response_model=list[LeadObligation])
+def get_overdue_obligations() -> list[LeadObligation]:
+    return list_overdue_obligations()
+
+
+@app.patch("/api/obligations/{obligation_id}/complete", response_model=LeadObligation)
+def mark_obligation_complete(obligation_id: int) -> LeadObligation:
+    try:
+        return complete_obligation(obligation_id)
+    except ObligationNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
 
 
 @app.post("/api/leads/{lead_id}/actions", response_model=OutboundAction, status_code=201)
