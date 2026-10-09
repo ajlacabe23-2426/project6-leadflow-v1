@@ -32,6 +32,7 @@ from app.outbox import (
 )
 from app.operations import (
     AssignmentIdempotencyConflict,
+    ObligationIdempotencyConflict,
     LeadAssignment,
     LeadAssignmentRequest,
     LeadObligation,
@@ -153,6 +154,8 @@ def create_lead_obligation(
         return create_obligation(lead_id, request)
     except LeadNotFound as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except ObligationIdempotencyConflict as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 @app.get("/api/leads/{lead_id}/obligations", response_model=list[LeadObligation])
