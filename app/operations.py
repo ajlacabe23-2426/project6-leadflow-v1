@@ -69,6 +69,10 @@ class AssignmentIdempotencyConflict(ValueError):
     pass
 
 
+class ObligationIdempotencyConflict(ValueError):
+    pass
+
+
 def initialize_operations_tables() -> None:
     with _connect() as connection:
         connection.execute(
@@ -176,6 +180,27 @@ def create_obligation(lead_id: int, request: LeadObligationRequest) -> LeadOblig
     with _connect() as connection:
         connection.execute("BEGIN IMMEDIATE")
         _ensure_lead(connection, lead_id)
+        # Only explicitly supplied IDs are replay keys. Legacy requests without
+        # one continue to create distinct obligations for each operator action.
+        if request.correlation_id is not None:
+            previous = connection.execute(
+                """
+                SELECT * FROM lead_obligations
+                WHERE lead_id = ? AND correlation_id = ?
+                ORDER BY id LIMIT 1
+                """,
+                (lead_id, request.correlation_id),
+            ).fetchone()
+            if previous is not None:
+                if (
+                    previous["obligation_type"] != request.obligation_type
+                    or previous["due_at"] != due_at
+                    or previous["reason_code"] != request.reason_code
+                ):
+                    raise ObligationIdempotencyConflict(
+                        "Obligation correlation ID was reused with different contents."
+                    )
+                return _obligation(previous)
         correlation_id = request.correlation_id or f"obligation:{lead_id}:{request.obligation_type}"
         cursor = connection.execute(
             """
