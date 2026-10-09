@@ -31,6 +31,7 @@ from app.outbox import (
     record_outbound_result,
 )
 from app.operations import (
+    AssignmentIdempotencyConflict,
     LeadAssignment,
     LeadAssignmentRequest,
     LeadObligation,
@@ -132,6 +133,8 @@ def create_lead_assignment(
         return assign_lead(lead_id, request)
     except LeadNotFound as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except AssignmentIdempotencyConflict as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 @app.get("/api/leads/{lead_id}/assignments", response_model=list[LeadAssignment])
