@@ -38,7 +38,9 @@ from app.operations import (
     LeadObligation,
     LeadObligationRequest,
     ObligationNotFound,
+    InvalidObligationTransition,
     assign_lead,
+    cancel_obligation,
     complete_obligation,
     create_obligation,
     initialize_operations_tables,
@@ -177,6 +179,16 @@ def mark_obligation_complete(obligation_id: int) -> LeadObligation:
         return complete_obligation(obligation_id)
     except ObligationNotFound as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+
+
+@app.patch("/api/obligations/{obligation_id}/cancel", response_model=LeadObligation)
+def mark_obligation_cancelled(obligation_id: int) -> LeadObligation:
+    try:
+        return cancel_obligation(obligation_id)
+    except ObligationNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except InvalidObligationTransition as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 @app.post("/api/leads/{lead_id}/actions", response_model=OutboundAction, status_code=201)
