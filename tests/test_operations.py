@@ -244,3 +244,26 @@ def test_cancelled_obligation_replay_keeps_one_historical_record(monkeypatch, tm
     assert len(history.json()) == 1
     assert history.json()[0]["status"] == "cancelled"
     assert overdue.json() == []
+
+
+def test_cancelled_obligation_cannot_be_completed_or_reopened(monkeypatch, tmp_path):
+    monkeypatch.setenv("LEADFLOW_DB_PATH", str(tmp_path / "cancel-complete-conflict.db"))
+    payload = {
+        "obligation_type": "owner-review",
+        "due_at": (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(),
+        "reason_code": "sla.owner-review",
+    }
+    with TestClient(app) as client:
+        lead_id = client.post("/api/leads", json=LEAD).json()["id"]
+        created = client.post(f"/api/leads/{lead_id}/obligations", json=payload)
+        obligation_id = created.json()["id"]
+        cancelled = client.patch(f"/api/obligations/{obligation_id}/cancel")
+        invalid = client.patch(f"/api/obligations/{obligation_id}/complete")
+        history = client.get(f"/api/leads/{lead_id}/obligations")
+        overdue = client.get("/api/obligations/overdue")
+    assert created.status_code == 201
+    assert cancelled.status_code == 200
+    assert invalid.status_code == 409
+    assert history.json()[0]["status"] == "cancelled"
+    assert history.json()[0]["completed_at"] is None
+    assert overdue.json() == []
