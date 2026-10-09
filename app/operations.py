@@ -65,6 +65,10 @@ class ObligationNotFound(LookupError):
     pass
 
 
+class InvalidObligationTransition(ValueError):
+    pass
+
+
 def initialize_operations_tables() -> None:
     with _connect() as connection:
         connection.execute(
@@ -226,4 +230,28 @@ def complete_obligation(obligation_id: int) -> LeadObligation:
         ).fetchone()
     if updated is None:
         raise RuntimeError("Lead obligation update was not persisted.")
+    return _obligation(updated)
+
+
+def cancel_obligation(obligation_id: int) -> LeadObligation:
+    """Idempotently cancel an open obligation without rewriting its history."""
+    with _connect() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute(
+            "SELECT * FROM lead_obligations WHERE id = ?", (obligation_id,)
+        ).fetchone()
+        if row is None:
+            raise ObligationNotFound(f"Obligation {obligation_id} was not found.")
+        if row["status"] == "completed":
+            raise InvalidObligationTransition("Completed obligations cannot be cancelled.")
+        if row["status"] == "open":
+            connection.execute(
+                "UPDATE lead_obligations SET status = 'cancelled' WHERE id = ?",
+                (obligation_id,),
+            )
+        updated = connection.execute(
+            "SELECT * FROM lead_obligations WHERE id = ?", (obligation_id,)
+        ).fetchone()
+    if updated is None:
+        raise RuntimeError("Lead obligation cancellation was not persisted.")
     return _obligation(updated)
