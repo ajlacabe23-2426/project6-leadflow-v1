@@ -65,6 +65,10 @@ class ObligationNotFound(LookupError):
     pass
 
 
+class AssignmentIdempotencyConflict(ValueError):
+    pass
+
+
 def initialize_operations_tables() -> None:
     with _connect() as connection:
         connection.execute(
@@ -122,6 +126,25 @@ def assign_lead(lead_id: int, request: LeadAssignmentRequest) -> LeadAssignment:
     with _connect() as connection:
         connection.execute("BEGIN IMMEDIATE")
         _ensure_lead(connection, lead_id)
+        # Caller-provided correlation IDs represent one logical assignment.
+        # The immediate transaction serializes concurrent retries in local SQLite.
+        if request.correlation_id is not None:
+            previous = connection.execute(
+                """
+                SELECT * FROM lead_assignments
+                WHERE lead_id = ? AND correlation_id = ?
+                ORDER BY id LIMIT 1
+                """,
+                (lead_id, request.correlation_id),
+            ).fetchone()
+            if previous is not None:
+                if (previous["owner_ref"], previous["reason_code"]) != (
+                    request.owner_ref, request.reason_code
+                ):
+                    raise AssignmentIdempotencyConflict(
+                        "Assignment correlation ID was reused with different contents."
+                    )
+                return _assignment(previous)
         correlation_id = request.correlation_id or f"assignment:{lead_id}"
         cursor = connection.execute(
             """
