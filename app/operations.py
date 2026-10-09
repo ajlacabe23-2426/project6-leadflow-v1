@@ -264,6 +264,8 @@ def complete_obligation(obligation_id: int) -> LeadObligation:
         ).fetchone()
         if row is None:
             raise ObligationNotFound(f"Obligation {obligation_id} was not found.")
+        if row["status"] == "cancelled":
+            raise InvalidObligationTransition("Cancelled obligations cannot be completed.")
         if row["status"] == "open":
             connection.execute(
                 """
