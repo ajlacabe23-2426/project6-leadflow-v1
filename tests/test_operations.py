@@ -90,3 +90,34 @@ def test_operations_reject_unknown_lead(monkeypatch, tmp_path):
             json={"owner_ref": "operator.aj", "reason_code": "specialist-review"},
         )
     assert response.status_code == 404
+
+
+def test_assignments_replay_same_explicit_correlation_without_duplicate(monkeypatch, tmp_path):
+    monkeypatch.setenv("LEADFLOW_DB_PATH", str(tmp_path / "assignment-idempotency.db"))
+    payload={
+        "owner_ref": "operator.aj",
+        "reason_code": "operator-reassignment",
+        "correlation_id": "assignment-delivery-001",
+    }
+    with TestClient(app) as client:
+        lead_id=client.post("/api/leads", json=LEAD).json()["id"]
+        first=client.post(f"/api/leads/{lead_id}/assignments", json=payload)
+        retry=client.post(f"/api/leads/{lead_id}/assignments", json=payload)
+        rejected=client.post(
+            f"/api/leads/{lead_id}/assignments",
+            json={**payload, "owner_ref": "operator.other"},
+        )
+        history=client.get(f"/api/leads/{lead_id}/assignments")
+        # Different explicit correlation IDs remain distinct reassignment events.
+        next_assignment=client.post(
+            f"/api/leads/{lead_id}/assignments",
+            json={**payload,"correlation_id":"assignment-delivery-002"},
+        )
+
+    assert first.status_code==201
+    assert retry.status_code==201
+    assert retry.json()==first.json()
+    assert rejected.status_code==409
+    assert [item["id"] for item in history.json()]==[first.json()["id"]]
+    assert next_assignment.status_code==201
+    assert next_assignment.json()["id"]!=first.json()["id"]
