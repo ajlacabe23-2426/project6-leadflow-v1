@@ -179,6 +179,8 @@ def mark_obligation_complete(obligation_id: int) -> LeadObligation:
         return complete_obligation(obligation_id)
     except ObligationNotFound as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except InvalidObligationTransition as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 @app.patch("/api/obligations/{obligation_id}/cancel", response_model=LeadObligation)
