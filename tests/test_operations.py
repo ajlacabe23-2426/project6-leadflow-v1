@@ -121,3 +121,46 @@ def test_assignments_replay_same_explicit_correlation_without_duplicate(monkeypa
     assert [item["id"] for item in history.json()]==[first.json()["id"]]
     assert next_assignment.status_code==201
     assert next_assignment.json()["id"]!=first.json()["id"]
+
+
+def test_obligation_retries_are_idempotent_and_conflicting_payloads_rejected(monkeypatch, tmp_path):
+    monkeypatch.setenv("LEADFLOW_DB_PATH", str(tmp_path / "obligation-idempotency.db"))
+    due_at = datetime(2026, 10, 1, 12, tzinfo=timezone.utc)
+    payload = {
+        "obligation_type": "first-response",
+        "due_at": due_at.isoformat(),
+        "reason_code": "sla.first-response",
+        "correlation_id": "sla-delivery-001",
+    }
+
+    with TestClient(app) as client:
+        lead_id = client.post("/api/leads", json=LEAD).json()["id"]
+        path = f"/api/leads/{lead_id}/obligations"
+        first = client.post(path, json=payload)
+        retry = client.post(path, json={
+            **payload,
+            "due_at": due_at.astimezone(timezone(timedelta(hours=-5))).isoformat(),
+        })
+        conflict = client.post(path, json={
+            **payload,
+            "due_at": (due_at + timedelta(minutes=1)).isoformat(),
+        })
+        different_key = client.post(path, json={
+            **payload, "correlation_id": "sla-delivery-002",
+        })
+        # Omitting the replay key preserves intentionally distinct legacy writes.
+        legacy_one = client.post(path, json={key: val for key, val in payload.items()
+                                             if key != "correlation_id"})
+        legacy_two = client.post(path, json={key: val for key, val in payload.items()
+                                             if key != "correlation_id"})
+        history = client.get(path)
+
+    assert first.status_code == 201
+    assert retry.status_code == 201
+    assert retry.json() == first.json()
+    assert conflict.status_code == 409
+    assert different_key.status_code == 201
+    assert legacy_one.status_code == 201
+    assert legacy_two.status_code == 201
+    assert len(history.json()) == 4
+    assert len({entry["id"] for entry in history.json()}) == 4
