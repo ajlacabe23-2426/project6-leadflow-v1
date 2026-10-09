@@ -65,6 +65,18 @@ class ObligationNotFound(LookupError):
     pass
 
 
+class InvalidObligationTransition(ValueError):
+    pass
+
+
+class AssignmentIdempotencyConflict(ValueError):
+    pass
+
+
+class ObligationIdempotencyConflict(ValueError):
+    pass
+
+
 def initialize_operations_tables() -> None:
     with _connect() as connection:
         connection.execute(
@@ -122,6 +134,25 @@ def assign_lead(lead_id: int, request: LeadAssignmentRequest) -> LeadAssignment:
     with _connect() as connection:
         connection.execute("BEGIN IMMEDIATE")
         _ensure_lead(connection, lead_id)
+        # Caller-provided correlation IDs represent one logical assignment.
+        # The immediate transaction serializes concurrent retries in local SQLite.
+        if request.correlation_id is not None:
+            previous = connection.execute(
+                """
+                SELECT * FROM lead_assignments
+                WHERE lead_id = ? AND correlation_id = ?
+                ORDER BY id LIMIT 1
+                """,
+                (lead_id, request.correlation_id),
+            ).fetchone()
+            if previous is not None:
+                if (previous["owner_ref"], previous["reason_code"]) != (
+                    request.owner_ref, request.reason_code
+                ):
+                    raise AssignmentIdempotencyConflict(
+                        "Assignment correlation ID was reused with different contents."
+                    )
+                return _assignment(previous)
         correlation_id = request.correlation_id or f"assignment:{lead_id}"
         cursor = connection.execute(
             """
@@ -153,6 +184,27 @@ def create_obligation(lead_id: int, request: LeadObligationRequest) -> LeadOblig
     with _connect() as connection:
         connection.execute("BEGIN IMMEDIATE")
         _ensure_lead(connection, lead_id)
+        # Only explicitly supplied IDs are replay keys. Legacy requests without
+        # one continue to create distinct obligations for each operator action.
+        if request.correlation_id is not None:
+            previous = connection.execute(
+                """
+                SELECT * FROM lead_obligations
+                WHERE lead_id = ? AND correlation_id = ?
+                ORDER BY id LIMIT 1
+                """,
+                (lead_id, request.correlation_id),
+            ).fetchone()
+            if previous is not None:
+                if (
+                    previous["obligation_type"] != request.obligation_type
+                    or previous["due_at"] != due_at
+                    or previous["reason_code"] != request.reason_code
+                ):
+                    raise ObligationIdempotencyConflict(
+                        "Obligation correlation ID was reused with different contents."
+                    )
+                return _obligation(previous)
         correlation_id = request.correlation_id or f"obligation:{lead_id}:{request.obligation_type}"
         cursor = connection.execute(
             """
@@ -212,6 +264,8 @@ def complete_obligation(obligation_id: int) -> LeadObligation:
         ).fetchone()
         if row is None:
             raise ObligationNotFound(f"Obligation {obligation_id} was not found.")
+        if row["status"] == "cancelled":
+            raise InvalidObligationTransition("Cancelled obligations cannot be completed.")
         if row["status"] == "open":
             connection.execute(
                 """
@@ -226,4 +280,27 @@ def complete_obligation(obligation_id: int) -> LeadObligation:
         ).fetchone()
     if updated is None:
         raise RuntimeError("Lead obligation update was not persisted.")
+    return _obligation(updated)
+
+def cancel_obligation(obligation_id: int) -> LeadObligation:
+    """Idempotently cancel an open obligation without rewriting its history."""
+    with _connect() as connection:
+        connection.execute("BEGIN IMMEDIATE")
+        row = connection.execute(
+            "SELECT * FROM lead_obligations WHERE id = ?", (obligation_id,)
+        ).fetchone()
+        if row is None:
+            raise ObligationNotFound(f"Obligation {obligation_id} was not found.")
+        if row["status"] == "completed":
+            raise InvalidObligationTransition("Completed obligations cannot be cancelled.")
+        if row["status"] == "open":
+            connection.execute(
+                "UPDATE lead_obligations SET status = 'cancelled' WHERE id = ?",
+                (obligation_id,),
+            )
+        updated = connection.execute(
+            "SELECT * FROM lead_obligations WHERE id = ?", (obligation_id,)
+        ).fetchone()
+    if updated is None:
+        raise RuntimeError("Lead obligation cancellation was not persisted.")
     return _obligation(updated)

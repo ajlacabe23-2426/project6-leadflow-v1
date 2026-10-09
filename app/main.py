@@ -31,12 +31,16 @@ from app.outbox import (
     record_outbound_result,
 )
 from app.operations import (
+    AssignmentIdempotencyConflict,
+    ObligationIdempotencyConflict,
     LeadAssignment,
     LeadAssignmentRequest,
     LeadObligation,
     LeadObligationRequest,
     ObligationNotFound,
+    InvalidObligationTransition,
     assign_lead,
+    cancel_obligation,
     complete_obligation,
     create_obligation,
     initialize_operations_tables,
@@ -132,6 +136,8 @@ def create_lead_assignment(
         return assign_lead(lead_id, request)
     except LeadNotFound as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except AssignmentIdempotencyConflict as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 @app.get("/api/leads/{lead_id}/assignments", response_model=list[LeadAssignment])
@@ -150,6 +156,8 @@ def create_lead_obligation(
         return create_obligation(lead_id, request)
     except LeadNotFound as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except ObligationIdempotencyConflict as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 @app.get("/api/leads/{lead_id}/obligations", response_model=list[LeadObligation])
@@ -171,6 +179,18 @@ def mark_obligation_complete(obligation_id: int) -> LeadObligation:
         return complete_obligation(obligation_id)
     except ObligationNotFound as error:
         raise HTTPException(status_code=404, detail=str(error)) from error
+    except InvalidObligationTransition as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@app.patch("/api/obligations/{obligation_id}/cancel", response_model=LeadObligation)
+def mark_obligation_cancelled(obligation_id: int) -> LeadObligation:
+    try:
+        return cancel_obligation(obligation_id)
+    except ObligationNotFound as error:
+        raise HTTPException(status_code=404, detail=str(error)) from error
+    except InvalidObligationTransition as error:
+        raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 @app.post("/api/leads/{lead_id}/actions", response_model=OutboundAction, status_code=201)
