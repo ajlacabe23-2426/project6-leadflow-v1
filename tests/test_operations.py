@@ -164,3 +164,83 @@ def test_obligation_retries_are_idempotent_and_conflicting_payloads_rejected(mon
     assert legacy_two.status_code == 201
     assert len(history.json()) == 4
     assert len({entry["id"] for entry in history.json()}) == 4
+
+def test_cancel_obligation_is_idempotent_and_removes_overdue_work(monkeypatch, tmp_path):
+    monkeypatch.setenv("LEADFLOW_DB_PATH", str(tmp_path / "cancel.db"))
+    with TestClient(app) as client:
+        lead_id = client.post("/api/leads", json=LEAD).json()["id"]
+        created = client.post(
+            f"/api/leads/{lead_id}/obligations",
+            json={
+                "obligation_type": "owner-review",
+                "due_at": (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat(),
+                "reason_code": "review.expired",
+            },
+        )
+        obligation_id = created.json()["id"]
+        assert any(
+            row["id"] == obligation_id
+            for row in client.get("/api/obligations/overdue").json()
+        )
+        first = client.patch(f"/api/obligations/{obligation_id}/cancel")
+        retry = client.patch(f"/api/obligations/{obligation_id}/cancel")
+        overdue = client.get("/api/obligations/overdue")
+        history = client.get(f"/api/leads/{lead_id}/obligations")
+
+    assert first.status_code == 200
+    assert first.json()["status"] == "cancelled"
+    assert retry.status_code == 200
+    assert retry.json() == first.json()
+    assert overdue.status_code == 200
+    assert obligation_id not in [row["id"] for row in overdue.json()]
+    assert history.json()[0]["status"] == "cancelled"
+
+
+def test_cancel_obligation_rejects_completed_and_missing_records(monkeypatch, tmp_path):
+    monkeypatch.setenv("LEADFLOW_DB_PATH", str(tmp_path / "cancel-completed.db"))
+    with TestClient(app) as client:
+        lead_id = client.post("/api/leads", json=LEAD).json()["id"]
+        created = client.post(
+            f"/api/leads/{lead_id}/obligations",
+            json={
+                "obligation_type": "first-response",
+                "due_at": datetime.now(timezone.utc).isoformat(),
+                "reason_code": "sla.response",
+            },
+        )
+        obligation_id = created.json()["id"]
+        completed = client.patch(f"/api/obligations/{obligation_id}/complete")
+        cancelled = client.patch(f"/api/obligations/{obligation_id}/cancel")
+        missing = client.patch("/api/obligations/999999/cancel")
+        history = client.get(f"/api/leads/{lead_id}/obligations")
+
+    assert completed.status_code == 200
+    assert cancelled.status_code == 409
+    assert missing.status_code == 404
+    assert history.json()[0]["status"] == "completed"
+
+
+def test_cancelled_obligation_replay_keeps_one_historical_record(monkeypatch, tmp_path):
+    monkeypatch.setenv("LEADFLOW_DB_PATH", str(tmp_path / "cancel-replay.db"))
+    payload = {
+        "obligation_type": "first-response",
+        "due_at": (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat(),
+        "reason_code": "sla.first-response",
+        "correlation_id": "delivery-cancelled-001",
+    }
+    with TestClient(app) as client:
+        lead_id = client.post("/api/leads", json=LEAD).json()["id"]
+        path = f"/api/leads/{lead_id}/obligations"
+        created = client.post(path, json=payload)
+        cancelled = client.patch(f"/api/obligations/{created.json()['id']}/cancel")
+        replay = client.post(path, json=payload)
+        history = client.get(path)
+        overdue = client.get("/api/obligations/overdue")
+
+    assert created.status_code == 201
+    assert cancelled.status_code == 200
+    assert replay.status_code == 201
+    assert replay.json() == cancelled.json()
+    assert len(history.json()) == 1
+    assert history.json()[0]["status"] == "cancelled"
+    assert overdue.json() == []
