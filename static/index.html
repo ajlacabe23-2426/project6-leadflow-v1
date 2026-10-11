@@ -60,6 +60,7 @@
         <button class="secondary" id="refresh" type="button">Refresh</button>
       </div>
       <div id="queue" class="muted">No leads loaded.</div>
+      <p id="queue-status" class="muted" role="status" aria-live="polite">Queue not refreshed yet.</p>
     </section>
   </div>
 </main>
@@ -67,6 +68,9 @@
 const form = document.querySelector("#lead-form");
 const result = document.querySelector("#result");
 const queue = document.querySelector("#queue");
+const queueStatus = document.querySelector("#queue-status");
+const refreshButton = document.querySelector("#refresh");
+let queueLoadPending = false;
 function escapeHtml(value) {
   return String(value).replace(/[&<>'"]/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
@@ -91,13 +95,22 @@ function payloadFromForm() {
   };
 }
 async function loadQueue() {
-  const response = await fetch("/api/leads");
-  const leads = await response.json();
-  if (!leads.length) {
-    queue.innerHTML = '<p class="muted">No leads yet.</p>';
-    return;
-  }
-  queue.innerHTML = leads.map(item => `
+  if (queueLoadPending) return;
+  queueLoadPending = true;
+  refreshButton.disabled = true;
+  refreshButton.textContent = "Refreshing…";
+  queueStatus.textContent = "Refreshing operator queue…";
+  try {
+    const response = await fetch("/api/leads", {cache: "no-store"});
+    if (!response.ok) throw new Error("Queue request failed");
+    const leads = await response.json();
+    if (!Array.isArray(leads)) throw new Error("Unexpected queue response");
+    if (!leads.length) {
+      queue.innerHTML = '<p class="muted">No leads yet.</p>';
+      queueStatus.textContent = "Queue refreshed. No leads yet.";
+      return;
+    }
+    queue.innerHTML = leads.map(item => `
     <article class="lead">
       <strong>${escapeHtml(item.lead.name)}</strong> · ${escapeHtml(item.lead.service)}<br/>
       <span class="badge">${escapeHtml(item.qualification.score)}/100</span>
@@ -108,6 +121,15 @@ async function loadQueue() {
       <strong>Scheduling:</strong> ${escapeHtml(item.scheduling_status)}</p>
       <p class="muted">${escapeHtml(item.follow_up)}</p>
     </article>`).join("");
+    queueStatus.textContent = `Queue refreshed: ${leads.length} lead${leads.length === 1 ? "" : "s"} loaded.`;
+  } catch {
+    // Keep the previous queue contents rather than replacing them with an error.
+    queueStatus.textContent = "Unable to refresh queue. Check the local server and try again.";
+  } finally {
+    queueLoadPending = false;
+    refreshButton.disabled = false;
+    refreshButton.textContent = "Refresh";
+  }
 }
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -133,7 +155,7 @@ Follow-up:
 ${data.follow_up}`;
   await loadQueue();
 });
-document.querySelector("#refresh").addEventListener("click", loadQueue);
+refreshButton.addEventListener("click", loadQueue);
 loadQueue();
 </script>
 </body>
