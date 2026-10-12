@@ -1,6 +1,6 @@
 Task ID: P6-REFRESH-BROWSER-VERIFICATION-2026-10-12
 Title: Verify the operator Refresh control in actual Chromium
-Status: VERIFYING
+Status: READY_FOR_AJ
 Risk Tier: TIER_1
 Base SHA: c1057738434e0ec0ba4166745bff00c5de7623c7
 
@@ -10,6 +10,7 @@ Complete the missing real browser regression for the existing refresh correction
 ## Authorized implementation paths
 - .codex/CURRENT_TASK.md
 - .github/workflows/ci.yml
+- .github/workflows/security-monitor.yml
 
 ## Authorized test paths
 - tests/refresh.browser.cjs
@@ -31,3 +32,6 @@ Complete the missing real browser regression for the existing refresh correction
 
 ## Local verification limitation
 Local Python tests/compile/pip health pass. Chromium download in this session returned an invalid archive; real browser acceptance must be observed in CI. Browser tooling installs only in ephemeral runner storage, not application dependencies.
+
+## Source verification
+The browser/API/SQLite regression passed in CI 38318157515 on the prior source revision. Final workflows now explicitly check out the PR head, avoiding implicit merge-ref evidence. All final-candidate gates must pass before delivery; owner device acceptance remains separate.
