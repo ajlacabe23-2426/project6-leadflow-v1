@@ -95,6 +95,14 @@ async function run() {
     await button.focus();
     await page.keyboard.press('Enter');
     await waitStatus('Queue refreshed: 1 lead loaded.');
+    // A full browser reload must recover the durable SQLite queue, not just
+    // the previous in-memory DOM. Never send real outbound follow-ups here.
+    await page.reload();
+    await waitStatus('Queue refreshed: 1 lead loaded.');
+    assert.equal(await page.locator('#queue .lead').count(),1,'Reload lost durable lead');
+    const persisted=await (await page.request.get(origin+'/api/leads')).json();
+    assert.equal(persisted.length,1,'Reload duplicated or lost the queued lead');
+    assert.equal(persisted[0].lead.email,'browser@example.com');
     assert.equal(await status.getAttribute('aria-live'), 'polite');
     assert.equal(await status.getAttribute('role'), 'status');
     await page.setViewportSize({width: 390, height: 844});
