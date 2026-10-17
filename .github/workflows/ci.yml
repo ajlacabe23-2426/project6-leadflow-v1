@@ -21,6 +21,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -56,6 +57,21 @@ jobs:
 
       - name: Run tests
         run: python -m pytest -q
+
+      - name: Set up Node for browser verification
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      - name: Install isolated browser test tooling
+        run: |
+          npm install --prefix "$RUNNER_TEMP/p6-browser" --ignore-scripts --no-audit --no-fund --save-exact playwright@1.62.1
+          node "$RUNNER_TEMP/p6-browser/node_modules/playwright/cli.js" install --with-deps chromium
+
+      - name: Verify real operator queue browser flow
+        env:
+          NODE_PATH: ${{ runner.temp }}/p6-browser/node_modules
+        run: node tests/refresh.browser.cjs
 
       - name: Run demo smoke test
         env:

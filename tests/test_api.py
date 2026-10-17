@@ -95,3 +95,23 @@ def test_consent_and_opt_out_cannot_conflict(monkeypatch, tmp_path):
         response = client.post("/api/leads", json=payload)
 
     assert response.status_code == 422
+
+
+def test_operator_queue_refresh_ui_contract(monkeypatch, tmp_path):
+    """The local queue page exposes observable refresh state and its read API."""
+    monkeypatch.setenv("LEADFLOW_DB_PATH", str(tmp_path / "refresh.db"))
+    with TestClient(app) as client:
+        page = client.get("/")
+        queue = client.get("/api/leads")
+
+    assert page.status_code == 200
+    assert queue.status_code == 200
+    assert queue.json() == []
+    html = page.text
+    assert 'id="refresh" type="button"' in html
+    assert 'id="queue-status"' in html
+    assert 'role="status" aria-live="polite"' in html
+    assert 'fetch("/api/leads", {cache: "no-store"})' in html
+    assert "Queue refreshed." in html
+    assert "Unable to refresh queue." in html
+    assert 'refreshButton.addEventListener("click", loadQueue)' in html
