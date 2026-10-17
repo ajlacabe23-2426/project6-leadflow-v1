@@ -10,6 +10,8 @@ from app.main import app
 LEAD = {
     "name": "Demo Operator",
     "email": "demo-operator@example.com",
+    "phone": "555-0100",
+    "notes": "Synthetic owner follow-up request.",
     "source": "synthetic-demo",
     "service": "Example automation consultation",
     "estimated_value": 12000,
