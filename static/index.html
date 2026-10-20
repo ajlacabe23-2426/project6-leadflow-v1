@@ -70,7 +70,9 @@ const result = document.querySelector("#result");
 const queue = document.querySelector("#queue");
 const queueStatus = document.querySelector("#queue-status");
 const refreshButton = document.querySelector("#refresh");
+const submitButton = form.querySelector('button[type="submit"]');
 let queueLoadPending = false;
+let intakePending = false;
 function escapeHtml(value) {
   return String(value).replace(/[&<>'"]/g, (character) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;"
@@ -133,18 +135,26 @@ async function loadQueue() {
 }
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (intakePending) return;
+  intakePending = true;
+  submitButton.disabled = true;
+  submitButton.textContent = "Qualifying…";
   result.textContent = "Processing…";
-  const response = await fetch("/api/leads", {
-    method: "POST",
-    headers: {"Content-Type": "application/json"},
-    body: JSON.stringify(payloadFromForm())
-  });
-  const data = await response.json();
-  if (!response.ok) {
-    result.textContent = JSON.stringify(data, null, 2);
-    return;
-  }
-  result.textContent = `Score: ${data.qualification.score}/100
+  try {
+    const response = await fetch("/api/leads", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payloadFromForm())
+    });
+    if (!response.ok) {
+      result.textContent = `Unable to qualify lead (HTTP ${response.status}). Review the form and try again.`;
+      return;
+    }
+    const data = await response.json();
+    if (!data || !data.qualification || typeof data.qualification.score !== "number") {
+      throw new Error("Unexpected intake response");
+    }
+    result.textContent = `Score: ${data.qualification.score}/100
 Route: ${data.qualification.routing}
 Priority: ${data.qualification.priority}
 Next action: ${data.qualification.next_action}
@@ -153,7 +163,14 @@ Scheduling: ${data.scheduling_status}
 
 Follow-up:
 ${data.follow_up}`;
-  await loadQueue();
+    await loadQueue();
+  } catch {
+    result.textContent = "Unable to qualify lead. Check the local server and try again. No delivery was attempted.";
+  } finally {
+    intakePending = false;
+    submitButton.disabled = false;
+    submitButton.textContent = "Qualify lead";
+  }
 });
 refreshButton.addEventListener("click", loadQueue);
 loadQueue();

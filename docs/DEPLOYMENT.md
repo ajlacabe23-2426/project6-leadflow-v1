@@ -25,10 +25,15 @@ docker build -t leadflow-v1 .
 Run:
 
 ```bash
-docker run --rm -p 8000:8000 -v leadflow-data:/app/data leadflow-v1
+docker run --rm -p 127.0.0.1:8000:8000 -v leadflow-data:/app/data leadflow-v1
 ```
 
 Then open `http://127.0.0.1:8000`.
+
+The explicit `127.0.0.1` host binding is intentional: this unauthenticated
+operator console is for local, synthetic-data demonstrations only. Do not
+publish port 8000 on all host interfaces, expose it through a public tunnel,
+or ingest real customer data before the production access-control gates pass.
 
 ## Hosting considerations
 

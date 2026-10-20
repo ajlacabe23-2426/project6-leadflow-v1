@@ -107,8 +107,49 @@ async function run() {
     assert.equal(await status.getAttribute('role'), 'status');
     await page.setViewportSize({width: 390, height: 844});
     assert.equal(await page.locator('#refresh').isVisible(), true);
+    // The intake path must recover from API/server failures without leaving the
+    // form permanently disabled or accidentally submitting duplicate requests.
+    await page.locator('input[name="name"]').fill('Browser Intake Synthetic');
+    await page.locator('input[name="email"]').fill('browser-intake@example.com');
+    const submit = page.getByRole('button', {name: 'Qualify lead', exact: true});
+    let releasePost;
+    let postRequests = 0;
+    let signalPost;
+    const postEntered = new Promise(resolve => {signalPost = resolve;});
+    await page.route('**/api/leads', async route => {
+      if (route.request().method() !== 'POST') return route.continue();
+      postRequests++;
+      await new Promise(resolve => {releasePost = resolve; signalPost();});
+      await route.fulfill({status: 503, contentType: 'application/json', body: '{}'});
+    });
+    await submit.click();
+    await postEntered;
+    assert.equal(await page.locator('#lead-form button[type="submit"]').isDisabled(), true);
+    await page.locator('#lead-form').evaluate(element => element.dispatchEvent(new Event('submit', {bubbles: true, cancelable: true})));
+    assert.equal(postRequests, 1, 'Pending intake issued duplicate POST');
+    releasePost();
+    await page.waitForFunction(() => document.querySelector('#result').textContent.includes('HTTP 503'));
+    assert.equal(await submit.isEnabled(), true);
+    await page.unroute('**/api/leads');
+
+    for (const failure of ['network', 'invalid-json', 'wrong-shape']) {
+      await page.route('**/api/leads', route => {
+        if (route.request().method() !== 'POST') return route.continue();
+        if (failure === 'network') return route.abort('failed');
+        return route.fulfill({status: 200, contentType: 'application/json', body: failure === 'invalid-json' ? '{' : '{}'});
+      });
+      await submit.click();
+      await page.waitForFunction(() => document.querySelector('#result').textContent.startsWith('Unable to qualify lead.'));
+      assert.equal(await submit.isEnabled(), true);
+      await page.unroute('**/api/leads');
+    }
+    await submit.click();
+    await page.waitForFunction(() => document.querySelector('#result').textContent.includes('Score:'));
+    await waitStatus('Queue refreshed: 2 leads loaded.');
+    const afterRecovery = await (await page.request.get(origin + '/api/leads')).json();
+    assert.equal(afterRecovery.length, 2, 'Failed intake retries created duplicate leads');
     assert.deepEqual(errors, []);
-    console.log('PASS: Chromium real refresh/API/SQLite flow, loading, duplicate suppression, failures, recovery, escaping, keyboard and mobile visibility');
+    console.log('PASS: Chromium refresh/intake API/SQLite flows, duplicate suppression, failure/recovery, escaping, keyboard and mobile visibility');
   } finally {
     if (browser) await browser.close();
     if (server.exitCode === null) {
