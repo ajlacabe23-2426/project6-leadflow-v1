@@ -115,3 +115,7 @@ def test_operator_queue_refresh_ui_contract(monkeypatch, tmp_path):
     assert "Queue refreshed." in html
     assert "Unable to refresh queue." in html
     assert 'refreshButton.addEventListener("click", loadQueue)' in html
+    assert 'if (intakePending) return;' in html
+    assert 'submitButton.disabled = true;' in html
+    assert 'submitButton.disabled = false;' in html
+    assert 'No delivery was attempted.' in html
