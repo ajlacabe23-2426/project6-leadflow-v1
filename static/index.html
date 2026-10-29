@@ -59,6 +59,8 @@
         <h2>Operator queue</h2>
         <button class="secondary" id="refresh" type="button">Refresh</button>
       </div>
+      <label for="operator-token">Operator access token (only when enabled on the local server)</label>
+      <input id="operator-token" type="password" autocomplete="off" spellcheck="false" placeholder="Enter token; never paste into a URL" />
       <div id="queue" class="muted">No leads loaded.</div>
       <p id="queue-status" class="muted" role="status" aria-live="polite">Queue not refreshed yet.</p>
     </section>
@@ -70,6 +72,7 @@ const result = document.querySelector("#result");
 const queue = document.querySelector("#queue");
 const queueStatus = document.querySelector("#queue-status");
 const refreshButton = document.querySelector("#refresh");
+const operatorToken = document.querySelector("#operator-token");
 const submitButton = form.querySelector('button[type="submit"]');
 let queueLoadPending = false;
 let intakePending = false;
@@ -103,7 +106,16 @@ async function loadQueue() {
   refreshButton.textContent = "Refreshing…";
   queueStatus.textContent = "Refreshing operator queue…";
   try {
-    const response = await fetch("/api/leads", {cache: "no-store"});
+    const queueOptions = {cache: "no-store"};
+    const token = operatorToken.value.trim();
+    if (token) queueOptions.headers = {Authorization: `Bearer ${token}`};
+    const response = await fetch("/api/leads", queueOptions);
+    if (response.status === 401) {
+      // Never retain stale PII from a prior authorized response after access fails.
+      queue.replaceChildren();
+      queueStatus.textContent = "Operator access required. Enter a valid token and refresh.";
+      return;
+    }
     if (!response.ok) throw new Error("Queue request failed");
     const leads = await response.json();
     if (!Array.isArray(leads)) throw new Error("Unexpected queue response");
