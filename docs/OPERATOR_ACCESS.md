@@ -47,3 +47,7 @@ Without either environment setting, the existing local demo works as before and 
 5. Per-customer onboarding and audited provider integration for send/booking/CRM actions, with idempotency and provider error handling.
 
 Do not expose this preview publicly or accept real lead PII based solely on this guard. Run the tests and browser verification at the exact candidate SHA before presenting this as a completed improvement.
+
+## Staging/production fail-closed mode
+
+Setting `LEADFLOW_ENV=staging` or `LEADFLOW_ENV=production` implicitly requires a configured strong operator token even if `LEADFLOW_REQUIRE_OPERATOR_AUTH` is omitted or false. Misconfiguration blocks private endpoints with 503, never falls back to anonymous operator access. This **does not** make the app safe for external customers: public intake still needs abuse controls, real user identity/authorization, tenant isolation and privacy safeguards.
