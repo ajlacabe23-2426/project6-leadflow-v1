@@ -23,7 +23,8 @@ def _operator_api(request: Request) -> bool:
 
 def _authentication_expected() -> bool:
     flag = os.getenv("LEADFLOW_REQUIRE_OPERATOR_AUTH", "").strip().lower()
-    return flag not in ("", "0", "false", "no", "off")
+    environment = os.getenv("LEADFLOW_ENV", "local").strip().lower()
+    return environment in {"production", "staging"} or flag not in ("", "0", "false", "no", "off")
 
 
 class OperatorAccessMiddleware(BaseHTTPMiddleware):
