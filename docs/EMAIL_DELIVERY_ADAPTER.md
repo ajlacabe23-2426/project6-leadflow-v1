@@ -8,7 +8,7 @@
 - Only `follow-up-email` actions are claimed. The existing `schedule-discovery` queue stays untouched.
 - After claiming an action, the worker re-reads the persisted lead **before each attempt** and fails permanently when consent is false, the customer is opted out, the communication status is suppressed, the lead is closed/suppressed, or the draft is empty.
 - Transport receives `idempotency_key=action.action_key`; real providers must honor/reconcile that key to avoid double delivery.
-- Only explicit, confirmed `accepted` outcomes become `succeeded`. A definite pre-acceptance rate limit/unavailability may retry with existing bounded backoff; ambiguous transport errors are permanently quarantined for manual review because acceptance may have occurred.
+- Only explicit, confirmed `accepted` outcomes become the outbox status `succeeded` and worker report `accepted`. **Provider acceptance is not inbox delivery.** A definite pre-acceptance rate limit/unavailability may retry with existing bounded backoff; ambiguous transport errors are permanently quarantined for manual review because acceptance may have occurred.
 - The worker returns action id and bounded error codes, never the recipient's email address, message body, API token, raw exception or provider authentication details.
 - The worker processes one action on explicit invocation. No background scheduler, process manager or public dispatch endpoint is added.
 
