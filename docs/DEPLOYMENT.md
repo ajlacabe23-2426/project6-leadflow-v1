@@ -30,10 +30,7 @@ docker run --rm -p 127.0.0.1:8000:8000 -v leadflow-data:/app/data leadflow-v1
 
 Then open `http://127.0.0.1:8000`.
 
-The explicit `127.0.0.1` host binding is intentional: this unauthenticated
-operator console is for local, synthetic-data demonstrations only. Do not
-publish port 8000 on all host interfaces, expose it through a public tunnel,
-or ingest real customer data before the production access-control gates pass.
+The explicit `127.0.0.1` host binding is intentional: this local, synthetic-data operator console is not a production service. An optional Bearer-token guard can be enabled using `LEADFLOW_OPERATOR_TOKEN` and `LEADFLOW_REQUIRE_OPERATOR_AUTH=1`, but it is only a first-stage demo access boundary (see [Operator Access](OPERATOR_ACCESS.md)). Do not publish port 8000 on all host interfaces, expose it through a public tunnel, or ingest real customer data before all production access-control and privacy gates pass.
 
 ## Hosting considerations
 
@@ -42,7 +39,7 @@ For a public demo, choose a platform that can run a persistent Python web servic
 Before production deployment:
 
 1. Move persistence to managed Postgres.
-2. Add authenticated operator access.
+2. Replace the optional shared demo token with identity-backed operator sessions, permissions and authorization.
 3. Add tenant-aware authorization if serving multiple organizations.
 4. Add secrets management.
 5. Add rate limiting and abuse protection.
