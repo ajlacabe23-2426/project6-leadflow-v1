@@ -18,7 +18,7 @@
 python -m pytest -q tests/test_email_delivery.py tests/test_outbox.py
 ```
 
-Use only an injected deterministic fake in this branch. The existing public operator API is still local-demo only; this delivery adapter PR does **not** silently merge the separate operator-auth candidate PR #35.
+Use only an injected deterministic fake in this branch. This **integration candidate** includes the operator-token protection from PR #35 together with the sandbox delivery worker from PR #37. That shared token is only a local demo boundary; it is **not** production-ready customer identity or authorization.
 
 ## Remaining service implementation
 
