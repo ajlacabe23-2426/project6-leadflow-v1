@@ -70,7 +70,7 @@ def test_sandbox_send_only_once_and_preserves_provider_idempotency(monkeypatch,t
     envelope,key=fake.messages[0]
     assert envelope.to==LEAD["email"]
     assert key=="send-once"
-    assert "Synthetic Buyer" in envelope.body
+    assert "Example Service" in envelope.body
     assert len(list_outbound_actions())==1
     assert list_outbound_actions()[0].status=="succeeded"
     # The redacted report does not expose a recipient or draft content.
