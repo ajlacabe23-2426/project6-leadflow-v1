@@ -2,7 +2,13 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
-from test_api import SAMPLE_LEAD
+SAMPLE_LEAD = {
+    "name": "Synthetic Prospect",
+    "email": "synthetic-operator-test@example.com",
+    "service": "Demo service",
+    "source": "test",
+    "communication_consent": False,
+}
 
 
 def test_protected_queue_requires_exact_token_and_keeps_intake_public(monkeypatch, tmp_path):
