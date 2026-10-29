@@ -43,7 +43,7 @@ The core qualification decision is deterministic and explainable. AI is intentio
 - SQLite persistence
 - Operator dashboard
 - Durable local provider-independent outbox with idempotent queueing, atomic claim, bounded retry/backoff, dead-letter, cancellation, and explicit no-send semantics
-- **Twelve regression tests** across scoring, API behavior, consent, and deduplication
+- Regression tests across scoring, API behavior, consent, deduplication, and the optional operator access boundary
 - GitHub Actions CI
 - Docker packaging
 - Demo smoke-test script
@@ -92,7 +92,7 @@ python -m scripts.demo
 
 ```bash
 docker build -t leadflow-v1 .
-docker run --rm -p 8000:8000 -v leadflow-data:/app/data leadflow-v1
+docker run --rm -p 127.0.0.1:8000:8000 -v leadflow-data:/app/data leadflow-v1
 ```
 
 Then open `http://127.0.0.1:8000`.
@@ -185,6 +185,10 @@ The hardening workflow additionally checks Python compilation, dependency consis
 
 The development outbox records external-action intent but has **no email, SMS, calendar, CRM, or other provider adapter**. Its claim/result endpoints exist only to exercise retry, idempotency, cancellation, and dead-letter behavior locally before real side effects are ever enabled.
 
+## Optional protected operator demo
+
+Private operator APIs can require a configured Bearer token using `LEADFLOW_OPERATOR_TOKEN`, with `LEADFLOW_REQUIRE_OPERATOR_AUTH=1` making missing/weak configuration fail closed. The browser has an in-memory token field for queue access; public intake stays unauthenticated. **This is not customer authentication or production authorization.** See [Operator Access](docs/OPERATOR_ACCESS.md) for secure local rehearsal instructions and launch blockers.
+
 ## V1 boundaries
 
 Not implemented yet:
@@ -197,7 +201,7 @@ Not implemented yet:
 - Multi-tenant isolation
 - Managed production persistence
 - Hosted public deployment
-- Operator authentication around the queue and audit records
+- Production-grade operator identity, organization authorization and tenant isolation (the optional demo token is not a replacement)
 
 Those are V2 concerns, not hidden behind demo buttons.
 
