@@ -43,6 +43,7 @@ The core qualification decision is deterministic and explainable. AI is intentio
 - SQLite persistence
 - Operator dashboard
 - Durable local provider-independent outbox with idempotent queueing, atomic claim, bounded retry/backoff, dead-letter, cancellation, and explicit no-send semantics
+- Optional injected sandbox-only email delivery worker, disabled by default and **not connected to any real provider**, with send-time consent and ambiguous-result quarantine
 - Regression tests across scoring, API behavior, consent, deduplication, and the optional operator access boundary
 - GitHub Actions CI
 - Docker packaging
