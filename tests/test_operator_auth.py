@@ -82,3 +82,16 @@ def test_unconfigured_local_demo_remains_synthetic_only(monkeypatch, tmp_path):
     with TestClient(app) as client:
         assert client.get("/api/leads").status_code == 200
         # Local/demo mode is deliberately not fit for public exposure.
+
+
+def test_production_environment_requires_strong_token_by_default(monkeypatch, tmp_path):
+    monkeypatch.setenv("LEADFLOW_DB_PATH", str(tmp_path / "production-gate.db"))
+    monkeypatch.setenv("LEADFLOW_ENV", "production")
+    monkeypatch.delenv("LEADFLOW_OPERATOR_TOKEN", raising=False)
+    monkeypatch.delenv("LEADFLOW_REQUIRE_OPERATOR_AUTH", raising=False)
+    with TestClient(app) as client:
+        assert client.get("/api/leads").status_code == 503
+        assert client.post("/api/outbox/claim").status_code == 503
+        # Intake remains public by design; rate limiting, bot controls, and
+        # full customer authentication are separate unsatisfied requirements.
+        assert client.post("/api/leads", json=SAMPLE_LEAD).status_code == 201
