@@ -16,7 +16,7 @@ from app.storage import _connect
 
 
 TransportStatus = Literal["accepted", "retryable-rejection", "permanent-rejection", "unknown"]
-DispatchStatus = Literal["disabled", "empty", "sent", "retry-wait", "dead-letter"]
+DispatchStatus = Literal["disabled", "empty", "accepted", "retry-wait", "dead-letter"]
 
 
 @dataclass(frozen=True)
@@ -123,7 +123,7 @@ def dispatch_one_email(transport: EmailTransport | None = None) -> DispatchRepor
         )
     updated = record_outbound_result(action.id, result)
     return DispatchReport(
-        status="sent" if updated.status == "succeeded" else updated.status,
+        status="accepted" if updated.status == "succeeded" else updated.status,
         action_id=action.id,
         error_code=updated.last_error_code,
     )
