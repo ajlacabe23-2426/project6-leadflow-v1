@@ -64,7 +64,7 @@ def test_sandbox_send_only_once_and_preserves_provider_idempotency(monkeypatch,t
         fake=FakeTransport()
         first=dispatch_one_email(fake)
         second=dispatch_one_email(fake)
-    assert first.status=="sent"
+    assert first.status=="accepted"
     assert second.status=="empty"
     assert len(fake.messages)==1
     envelope,key=fake.messages[0]
