@@ -10,6 +10,7 @@ Turn lead scores into accountable internal next actions with owner, deadline, co
 ## Authorized implementation paths
 - .codex/CURRENT_TASK.md
 - .env.example
+- .github/workflows/ci.yml
 - app/main.py
 - app/triage.py
 - static/index.html
@@ -20,6 +21,7 @@ Turn lead scores into accountable internal next actions with owner, deadline, co
 
 ## Authorized test paths
 - tests/test_action_center.py
+- tests/action-center.browser.cjs
 
 ## Acceptance criteria
 - Existing scoring, lifecycle, idempotency, consent, outbox and browser regression tests remain green.
@@ -29,6 +31,7 @@ Turn lead scores into accountable internal next actions with owner, deadline, co
 - Protected Action Center API requires operator authorization when configured; public widget cannot read operator data.
 - Public iframe widget posts validated intake only with an unchecked optional consent control.
 - All server-side work runs without an LLM or external provider.
+- Chromium verifies iframe-widget customer intake, protected Action Center, assignment and completion, and clears private records after losing operator authorization.
 - GitHub exact-head CI and security monitor pass, then owner MacBook UI validation.
 
 ## Explicit non-goals
