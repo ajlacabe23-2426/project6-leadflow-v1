@@ -272,6 +272,11 @@ def intake_widget_page() -> FileResponse:
     return FileResponse(Path("static/widget.html"))
 
 
+@app.get("/embed-demo", include_in_schema=False)
+def embed_demo() -> FileResponse:
+    return FileResponse(Path("static/embed-demo.html"))
+
+
 @app.get("/embed.js", include_in_schema=False)
 def embed_script() -> FileResponse:
     return FileResponse(Path("static/embed.js"), media_type="text/javascript")
