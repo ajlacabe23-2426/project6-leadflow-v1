@@ -25,6 +25,7 @@ Open:
 - Intake: http://127.0.0.1:8000/
 - Action Center: http://127.0.0.1:8000/action-center
 - Standalone widget: http://127.0.0.1:8000/widget
+- Zero-config installation preview: http://127.0.0.1:8000/embed-demo
 
 Website install example (local test HTML only):
 
