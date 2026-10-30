@@ -73,6 +73,11 @@ jobs:
           NODE_PATH: ${{ runner.temp }}/p6-browser/node_modules
         run: node tests/refresh.browser.cjs
 
+      - name: Verify protected operator queue in Chromium
+        env:
+          NODE_PATH: ${{ runner.temp }}/p6-browser/node_modules
+        run: node tests/operator-auth.browser.cjs
+
       - name: Run demo smoke test
         env:
           LEADFLOW_DB_PATH: /tmp/leadflow-demo.db

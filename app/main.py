@@ -8,6 +8,7 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 
+from app.operator_auth import OperatorAccessMiddleware
 from app.followup import generate_follow_up
 from app.lifecycle import InvalidLifecycleTransition
 from app.models import (
@@ -74,6 +75,9 @@ app = FastAPI(
     ),
     lifespan=lifespan,
 )
+
+
+app.add_middleware(OperatorAccessMiddleware)
 
 
 @app.exception_handler(RequestValidationError)

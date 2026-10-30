@@ -105,8 +105,12 @@ def list_outbound_actions() -> list[OutboundAction]:
     return [_row_to_action(row) for row in rows]
 
 
-def claim_next_outbound_action(now: datetime | None = None) -> OutboundAction | None:
-    """Atomically claim one due action for a future provider adapter."""
+def claim_next_outbound_action(
+    now: datetime | None = None, *, action_type: str | None = None
+) -> OutboundAction | None:
+    """Atomically claim a due action; optional type filters are parameterized."""
+    if action_type is not None and action_type not in {"follow-up-email", "schedule-discovery"}:
+        raise ValueError("Unsupported outbox action type.")
     current = now or datetime.now(timezone.utc)
     current_sql = _utc_sql(current)
     with _connect() as connection:
@@ -114,12 +118,13 @@ def claim_next_outbound_action(now: datetime | None = None) -> OutboundAction | 
         row = connection.execute(
             """
             SELECT * FROM outbound_actions
-            WHERE status = 'queued'
-               OR (status = 'retry-wait' AND next_attempt_at <= ?)
+            WHERE (action_type = ? OR ? IS NULL)
+              AND (status = 'queued'
+               OR (status = 'retry-wait' AND next_attempt_at <= ?))
             ORDER BY id
             LIMIT 1
             """,
-            (current_sql,),
+            (action_type, action_type, current_sql),
         ).fetchone()
         if row is None:
             return None

@@ -111,7 +111,9 @@ def test_operator_queue_refresh_ui_contract(monkeypatch, tmp_path):
     assert 'id="refresh" type="button"' in html
     assert 'id="queue-status"' in html
     assert 'role="status" aria-live="polite"' in html
-    assert 'fetch("/api/leads", {cache: "no-store"})' in html
+    assert 'fetch("/api/leads", queueOptions)' in html
+    assert 'id="operator-token" type="password"' in html
+    assert "queue.replaceChildren()" in html
     assert "Queue refreshed." in html
     assert "Unable to refresh queue." in html
     assert 'refreshButton.addEventListener("click", loadQueue)' in html
