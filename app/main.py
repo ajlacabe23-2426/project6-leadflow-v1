@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import os
 from pathlib import Path
 from typing import Annotated
 
@@ -9,6 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse
 
 from app.operator_auth import OperatorAccessMiddleware
+from app.triage import ensure_initial_triage
 from app.followup import generate_follow_up
 from app.lifecycle import InvalidLifecycleTransition
 from app.models import (
@@ -105,7 +107,10 @@ def create_lead(
     qualification = qualify_lead(lead)
     follow_up = generate_follow_up(lead, qualification)
     try:
-        return save_lead(lead, qualification, follow_up, request_key=idempotency_key)
+        record = save_lead(lead, qualification, follow_up, request_key=idempotency_key)
+        if os.getenv('LEADFLOW_ENABLE_AUTO_TRIAGE', '0') == '1':
+            ensure_initial_triage(record)
+        return record
     except IdempotencyConflict as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
 
@@ -239,6 +244,37 @@ def cancel_outbox_action(action_id: int) -> OutboundAction:
         raise HTTPException(status_code=404, detail=str(error)) from error
     except InvalidOutboundActionTransition as error:
         raise HTTPException(status_code=409, detail=str(error)) from error
+
+
+@app.get("/api/action-center")
+def action_center() -> dict:
+    """Protected operator view with owner and action evidence; no LLM required."""
+    items = []
+    for lead in list_leads():
+        assignment_history = list_assignments(lead.id)
+        obligations = list_obligations(lead.id)
+        items.append({
+            "lead": lead.model_dump(mode="json"),
+            "owner": assignment_history[-1].owner_ref if assignment_history else None,
+            "assignment_history": [a.model_dump(mode="json") for a in assignment_history],
+            "obligations": [o.model_dump(mode="json") for o in obligations],
+        })
+    return {"items": items}
+
+
+@app.get("/action-center", include_in_schema=False)
+def action_center_page() -> FileResponse:
+    return FileResponse(Path("static/action-center.html"))
+
+
+@app.get("/widget", include_in_schema=False)
+def intake_widget_page() -> FileResponse:
+    return FileResponse(Path("static/widget.html"))
+
+
+@app.get("/embed.js", include_in_schema=False)
+def embed_script() -> FileResponse:
+    return FileResponse(Path("static/embed.js"), media_type="text/javascript")
 
 
 @app.get("/", include_in_schema=False)
