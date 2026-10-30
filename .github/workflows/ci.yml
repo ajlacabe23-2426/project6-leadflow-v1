@@ -78,6 +78,11 @@ jobs:
           NODE_PATH: ${{ runner.temp }}/p6-browser/node_modules
         run: node tests/operator-auth.browser.cjs
 
+      - name: Verify Action Center widget and operator actions in Chromium
+        env:
+          NODE_PATH: ${{ runner.temp }}/p6-browser/node_modules
+        run: node tests/action-center.browser.cjs
+
       - name: Run demo smoke test
         env:
           LEADFLOW_DB_PATH: /tmp/leadflow-demo.db
