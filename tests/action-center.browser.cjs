@@ -37,6 +37,9 @@ async function run(){
     const page=await browser.newPage();
     const errors=[];
     page.on('pageerror',e=>errors.push(e.message));
+    await page.goto(origin+'/embed-demo');
+    await page.getByRole('button',{name:'Open LeadFlow inquiry form'}).click();
+    await page.frameLocator('iframe[title="LeadFlow inquiry form"]').getByRole('heading',{name:'Tell us what you need.'}).waitFor();
     await page.goto(origin+'/widget');
     await page.getByLabel('Name').fill('Synthetic Widget Lead');
     await page.getByLabel('Email').fill('synthetic-widget@example.com');
