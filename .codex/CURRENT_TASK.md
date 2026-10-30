@@ -1,37 +1,39 @@
-Task ID: P6-REFRESH-BROWSER-VERIFICATION-2026-10-12
-Title: Verify the operator Refresh control in actual Chromium
-Status: READY_FOR_AJ
-Risk Tier: TIER_1
-Base SHA: c1057738434e0ec0ba4166745bff00c5de7623c7
+Task ID: P6-ACTION-CENTER-WIDGET-2026-10-30
+Title: Verify LeadFlow Action Center, retry-safe triage and low-friction website widget
+Status: VERIFYING
+Risk Tier: TIER_3
+Base SHA: b41ec3f949b04dab38d9bfa8a9139e1d92b07917
 
 ## Objective
-Complete the missing real browser regression for the existing refresh correction on PR #21.
+Turn lead scores into accountable internal next actions with owner, deadline, completion evidence and an embeddable inquiry form, without introducing a mandatory LLM dependency. Reuse the integrated demo operator-access boundary. Do not execute any external customer communications.
 
 ## Authorized implementation paths
 - .codex/CURRENT_TASK.md
-- .github/workflows/ci.yml
-- .github/workflows/security-monitor.yml
+- .env.example
+- app/main.py
+- app/triage.py
+- static/index.html
+- static/action-center.html
+- static/widget.html
+- static/embed.js
+- docs/ACTION_CENTER_WIDGET.md
 
 ## Authorized test paths
-- tests/refresh.browser.cjs
-- tests/test_api.py
+- tests/test_action_center.py
 
 ## Acceptance criteria
-- Actual Chromium clicks reload a lead created through the real local API and temporary SQLite database.
-- Empty, loading, duplicate click, HTTP/JSON/network failures and subsequent recovery behave correctly.
-- Failed requests preserve the prior queue; untrusted text renders escaped.
-- Keyboard activation, live status and mobile control visibility pass.
-- Existing Python suite, compile, pip health, dependency audit, security and exact-head CI pass.
-- Owner Lenovo retest remains separately NOT_RUN until performed.
+- Existing scoring, lifecycle, idempotency, consent, outbox and browser regression tests remain green.
+- Opt-in auto-triage creates exactly one repeat-safe internal assignment and time-bound obligation for a validated lead.
+- No-consent leads receive owner-review instead of automatic outreach.
+- Action Center reads actual persisted owner/task state, supports assignment, review task creation, completion and reload.
+- Protected Action Center API requires operator authorization when configured; public widget cannot read operator data.
+- Public iframe widget posts validated intake only with an unchecked optional consent control.
+- All server-side work runs without an LLM or external provider.
+- GitHub exact-head CI and security monitor pass, then owner MacBook UI validation.
 
 ## Explicit non-goals
-- No provider execution, outbound sends, auth, lead logic, hosted changes, secrets, main merge or deployment.
+- No customer live production exposure, payment, public email/SMS, calendar booking, external CRM writes, real customer PII, hosted database migrations, secrets or automated cold outreach.
+- No claim of production-ready operator identity, multitenancy, public-form bot protection or third-party integration.
 
-## Required gates
-- CI including the real loopback browser test; Security Monitor; scoped read-only review.
-
-## Local verification limitation
-Local Python tests/compile/pip health pass. Chromium download in this session returned an invalid archive; real browser acceptance must be observed in CI. Browser tooling installs only in ephemeral runner storage, not application dependencies.
-
-## Source verification
-The browser/API/SQLite regression passed in CI 38318157515 on the prior source revision. Final workflows now explicitly check out the PR head, avoiding implicit merge-ref evidence. All final-candidate gates must pass before delivery; owner device acceptance remains separate.
+## Release constraints
+Pushing code to the protected main branch is distinct from public production deployment. Production NO-GO remains until tenant-aware auth, abuse controls, legal/data processing, managed storage/recovery and real-world acceptance are verified. All test cases use fictional lead data.
