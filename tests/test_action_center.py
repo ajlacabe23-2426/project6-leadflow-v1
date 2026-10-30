@@ -95,3 +95,6 @@ def test_widget_and_operator_pages_are_separate_and_dont_send(monkeypatch, tmp_p
         assert embed.status_code == 200
         assert "/widget" in embed.text
         assert "iframe" in embed.text
+        demo = client.get("/embed-demo")
+        assert demo.status_code == 200
+        assert '<script src="/embed.js"' in demo.text
