@@ -45,7 +45,7 @@ async function run(){
     await page.getByLabel('Email').fill('synthetic-widget@example.com');
     await page.getByLabel('What do you need?').fill('Synthetic estimate');
     await page.getByRole('button',{name:'Send inquiry'}).click();
-    await page.getByRole('status').getByText(/Your inquiry was recorded as #/).waitFor();
+    await page.locator('#status').filter({hasText:/Your inquiry was recorded as #/}).waitFor();
     assert.equal((await page.request.get(origin+'/api/action-center')).status(),401);
 
     await page.goto(origin+'/action-center');
@@ -64,7 +64,7 @@ async function run(){
 
     // Reload discards operator secret; private records must disappear.
     await page.reload();
-    await page.getByRole('status').getByText(/Operator access required/).waitFor();
+    await page.locator('#status').filter({hasText:/Operator access required/}).waitFor();
     assert.equal(await page.locator('#token').inputValue(),'');
     assert.equal(await page.locator('.case').count(),0);
     assert.deepEqual(errors,[]);
