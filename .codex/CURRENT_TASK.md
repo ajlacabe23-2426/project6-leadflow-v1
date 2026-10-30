@@ -17,6 +17,7 @@ Turn lead scores into accountable internal next actions with owner, deadline, co
 - static/action-center.html
 - static/widget.html
 - static/embed.js
+- static/embed-demo.html
 - docs/ACTION_CENTER_WIDGET.md
 
 ## Authorized test paths
