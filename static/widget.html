@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LeadFlow — Request a callback</title>
+<style>
+:root{color-scheme:light;font-family:Inter,system-ui,Arial,sans-serif}
+*{box-sizing:border-box}body{margin:0;background:#f5f8fb;color:#142338;padding:18px}
+h1{font-size:1.35rem;letter-spacing:-.025em;margin:0 0 8px}
+p{font-size:.83rem;line-height:1.45;color:#50667d}
+form{display:grid;gap:11px}
+label{font-size:.79rem;font-weight:650;display:grid;gap:5px}
+input,textarea{font:inherit;width:100%;padding:10px;border:1px solid #a2b7ca;border-radius:9px;background:white;color:#142338}
+textarea{min-height:62px}
+.check{display:flex;align-items:start;gap:9px;font-size:.76rem;font-weight:400}
+.check input{width:auto;margin-top:3px}
+button{background:#193b62;border:0;padding:11px;border-radius:10px;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+button:disabled{opacity:.5}
+#status{min-height:32px;font-size:.8rem;color:#254a63}
+</style>
+</head>
+<body>
+<h1>Tell us what you need.</h1>
+<p>Leave a brief inquiry. A team member can decide the next step. Automated email and appointment booking are not active.</p>
+<form id="inquiry">
+<label>Name<input name="name" minlength="2" maxlength="120" required autocomplete="name"></label>
+<label>Email<input name="email" type="email" required autocomplete="email"></label>
+<label>What do you need?<input name="service" minlength="2" maxlength="160" placeholder="Example: help with an estimate" required></label>
+<label>Details (optional)<textarea name="notes" maxlength="2000" placeholder="A short description helps us route your inquiry."></textarea></label>
+<label class="check"><input name="communication_consent" type="checkbox">I agree that the business may contact me about this inquiry. No message is sent automatically.</label>
+<button type="submit">Send inquiry</button>
+</form>
+<p id="status" role="status" aria-live="polite"></p>
+<p>Do not include passwords, card details, or other sensitive information. Demonstration only — not enabled for public customer collection.</p>
+<script>
+(function(){
+  "use strict";
+  const form=document.getElementById("inquiry"),status=document.getElementById("status"),button=form.querySelector("button");
+  let pending=false,replayKey=null;
+  form.addEventListener("submit",async function(e){
+    e.preventDefault();if(pending)return;
+    pending=true;button.disabled=true;status.textContent="Submitting inquiry…";
+    if(!replayKey)replayKey=crypto.randomUUID();
+    const d=new FormData(form);
+    const payload={
+      name:d.get("name"),email:d.get("email"),service:d.get("service"),
+      source:"website-widget",notes:d.get("notes")||null,
+      communication_consent:d.has("communication_consent"),opted_out:false
+    };
+    try{
+      const response=await fetch("/api/leads",{method:"POST",cache:"no-store",
+        headers:{"Content-Type":"application/json","Idempotency-Key":replayKey},
+        body:JSON.stringify(payload)});
+      if(!response.ok)throw Error("Could not save inquiry (HTTP "+response.status+").");
+      const result=await response.json();
+      if(typeof result.id!=="number")throw Error("Unexpected response.");
+      status.textContent="Your inquiry was recorded as #"+result.id+". No outbound message was sent.";
+      form.reset();replayKey=null;
+    }catch(err){status.textContent=err.message+" You may retry safely.";}
+    finally{pending=false;button.disabled=false;}
+  });
+})();
+</script>
+</body>
+</html>
