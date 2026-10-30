@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LeadFlow — Action Center</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,Arial,sans-serif}
+*{box-sizing:border-box}
+body{margin:0;background:#07111f;color:#e9f1fb}
+main{width:min(1230px,100%);margin:auto;padding:28px 22px 80px}
+header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+a{color:#85caff;text-decoration:none}
+h1{font-size:clamp(2rem,5vw,3.5rem);margin:10px 0 6px;letter-spacing:-.04em}
+h2{margin:0;font-size:1.15rem}
+small,.muted{color:#92a8bd}
+.eyebrow{font-size:.73rem;font-weight:750;letter-spacing:.16em;color:#79b9e9}
+.controls,.cards,.case{background:#0e1e31;border:1px solid #233c58;border-radius:18px}
+.controls{margin:24px 0;padding:17px;display:flex;align-items:end;flex-wrap:wrap;gap:12px}
+label{display:grid;gap:6px;font-size:.8rem;color:#aac0d4;flex:1;min-width:170px}
+input{background:#091724;border:1px solid #36516d;border-radius:10px;color:#fff;padding:11px}
+button{border:0;border-radius:10px;background:#42b6f5;padding:11px 15px;font-weight:750;color:#081625;cursor:pointer}
+button.secondary{background:#203b57;color:#e7f2ff}
+button:disabled{opacity:.45;cursor:wait}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:24px}
+.metric{background:#102238;border:1px solid #23405c;padding:18px;border-radius:15px}
+.metric strong{display:block;font-size:2rem}
+.metric small{font-size:.75rem}
+.cases{display:grid;gap:14px}
+.case{padding:21px;display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px}
+.case h3{margin:5px 0 8px;font-size:1.25rem}
+.pill{display:inline-block;background:#1e3954;border-radius:30px;padding:4px 10px;font-size:.73rem;margin:3px}
+.task{border:1px solid #29415c;border-radius:12px;padding:12px;margin-bottom:8px}
+.task.overdue{border-color:#e5a74c}
+.task.done{opacity:.65}
+.taskline{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.taskline button{font-size:.75rem;padding:7px 10px}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.status{margin:10px 0 20px;min-height:23px;color:#a6e1b3}
+.note{font-size:.85rem;color:#a9bdd0;line-height:1.5}
+@media(max-width:720px){.case{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}main{padding:20px 14px 55px}}
+</style>
+</head>
+<body>
+<main>
+<header>
+  <div class="eyebrow">LEADFLOW / RELIABLE LEAD HANDLING</div>
+  <nav><a href="/">Intake &amp; queue</a> &nbsp;·&nbsp; <a href="/widget">Widget preview</a></nav>
+</header>
+<h1>Action Center<span style="color:#45aff1">.</span></h1>
+<p class="muted">Every inquiry needs an owner, a deadline and a verifiable next step. Not another CRM.</p>
+<section class="controls">
+  <label>Operator token (local demo, if enabled)
+    <input type="password" id="token" autocomplete="off" spellcheck="false" placeholder="Kept only in page memory">
+  </label>
+  <label>Claim as (operator reference)
+    <input type="text" id="owner" value="operator.local" maxlength="120">
+  </label>
+  <button id="refresh" type="button">Refresh actions</button>
+</section>
+<p class="status" role="status" id="status" aria-live="polite">Load the queue to review outstanding actions.</p>
+<section class="metrics" aria-label="Action summary">
+  <div class="metric"><strong id="total">—</strong><small>Lead cases</small></div>
+  <div class="metric"><strong id="open">—</strong><small>Open obligations</small></div>
+  <div class="metric"><strong id="late">—</strong><small>Overdue actions</small></div>
+  <div class="metric"><strong id="unassigned">—</strong><small>Unclaimed cases</small></div>
+</section>
+<section class="cases" id="cases"></section>
+<p class="note">All activity here is internal workflow tracking. No email, SMS, CRM or calendar action is sent. A lead without communication consent requires internal review before any outreach.</p>
+</main>
+<script>
+(function(){
+"use strict";
+const token=document.getElementById("token"),owner=document.getElementById("owner");
+const cases=document.getElementById("cases"),status=document.getElementById("status"),refreshBtn=document.getElementById("refresh");
+let running=false;
+const esc=value=>String(value??"").replace(/[&<>'"]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[ch]));
+function labelDate(value){const d=new Date(value);return Number.isNaN(d.getTime())?"Unknown":d.toLocaleString();}
+function safeId(value){const id=Number(value);if(!Number.isSafeInteger(id)||id<1)throw Error("Invalid case identifier");return id;}
+async function request(path,options={}){
+  const headers={...(options.body?{"Content-Type":"application/json"}:{}),...(options.headers||{})};
+  if(token.value.trim())headers.Authorization="Bearer "+token.value.trim();
+  const response=await fetch(path,{cache:"no-store",...options,headers});
+  if(!response.ok)throw Error(response.status===401?"Operator access required; check your token.":response.status===503?"Operator access is not configured on this server.":"Request failed (HTTP "+response.status+").");
+  return response.json();
+}
+function taskMarkup(t){
+  const overdue=t.status==="open" && new Date(t.due_at).getTime()<Date.now();
+  return '<div class="task '+(overdue?"overdue ":"")+(t.status!=="open"?"done":"")+'">'+
+  '<div class="taskline"><strong>'+esc(t.obligation_type.replace(/-/g," "))+'</strong><span class="pill">'+esc(t.status)+'</span></div>'+
+  '<p class="note">Due '+esc(labelDate(t.due_at))+(overdue?' · OVERDUE':'')+'</p>'+
+  (t.status==="open"?'<button class="secondary" data-action="complete" data-task="'+safeId(t.id)+'" type="button">Mark completed</button>':'')+'</div>';
+}
+function render(items){
+  const all=items.flatMap(i=>i.obligations);
+  const open=all.filter(t=>t.status==="open");
+  document.getElementById("total").textContent=items.length;
+  document.getElementById("open").textContent=open.length;
+  document.getElementById("late").textContent=open.filter(t=>new Date(t.due_at).getTime()<Date.now()).length;
+  document.getElementById("unassigned").textContent=items.filter(i=>!i.owner || i.owner==="queue.triage").length;
+  const priority={high:0,medium:1,low:2};
+  items.sort((a,b)=>(priority[a.lead.qualification.priority]??3)-(priority[b.lead.qualification.priority]??3));
+  cases.innerHTML=items.map(i=>{
+    const l=i.lead, id=safeId(l.id), tasks=i.obligations;
+    const allowed=l.communication_status==="draft-ready";
+    return '<article class="case"><div><small>CASE #'+id+' · '+esc(l.lead.source)+'</small>'+
+      '<h3>'+esc(l.lead.name)+' <span class="pill">'+esc(l.qualification.score)+'/100 · '+esc(l.qualification.priority)+'</span></h3>'+
+      '<p>'+esc(l.lead.service)+'</p>'+
+      '<p class="note">Routing: '+esc(l.qualification.routing)+' · '+esc(l.qualification.next_action)+'</p>'+
+      '<p class="note">Contact: '+(allowed?"Consent recorded; human approval still required":"Outreach suppressed — internal review only")+'</p>'+
+      '<p class="note">Owner: <strong>'+esc(i.owner || "Unassigned")+'</strong></p>'+
+      '<div class="actions"><button data-action="claim" data-lead="'+id+'" type="button">Assign to operator</button>'+
+      '<button class="secondary" data-action="task" data-lead="'+id+'" type="button">Add review task</button></div></div>'+
+      '<div><h2>Required actions</h2><p class="note">'+tasks.length+' tracked obligation(s)</p>'+
+      (tasks.length?tasks.map(taskMarkup).join(""):'<p class="note">No task exists yet. Create an internal review task.</p>')+
+      '</div></article>';
+  }).join("") || '<p class="muted">No lead cases yet. Open the intake form and submit a fictional test lead.</p>';
+}
+async function reload(){
+  if(running)return;
+  running=true;refreshBtn.disabled=true;status.textContent="Loading action evidence…";
+  try{const data=await request("/api/action-center");if(!Array.isArray(data.items))throw Error("Unexpected server response");render(data.items);status.textContent="Action Center updated — no customer communications sent.";}
+  catch(e){cases.replaceChildren();for(const id of ["total","open","late","unassigned"])document.getElementById(id).textContent="—";status.textContent=e.message;}
+  finally{running=false;refreshBtn.disabled=false;}
+}
+refreshBtn.addEventListener("click",reload);
+cases.addEventListener("click",async e=>{
+  const b=e.target.closest("button[data-action]");if(!b||running)return;
+  running=true;b.disabled=true;status.textContent="Saving internal workflow action…";
+  try{
+    const action=b.dataset.action;
+    if(action==="claim"){
+      const user=owner.value.trim();
+      if(!/^[A-Za-z0-9._:@-]{1,120}$/.test(user))throw Error("Enter an operator reference using letters, numbers, dots, dashes or underscores.");
+      await request("/api/leads/"+safeId(b.dataset.lead)+"/assignments",{method:"POST",body:JSON.stringify({owner_ref:user,reason_code:"operator-reassignment"})});
+    }else if(action==="task"){
+      await request("/api/leads/"+safeId(b.dataset.lead)+"/obligations",{method:"POST",body:JSON.stringify({obligation_type:"owner-review",due_at:new Date(Date.now()+3600000).toISOString(),reason_code:"manual.review"})});
+    }else if(action==="complete"){
+      await request("/api/obligations/"+safeId(b.dataset.task)+"/complete",{method:"PATCH"});
+    }
+    status.textContent="Saved; refresh to see the updated evidence.";
+  }catch(err){status.textContent=err.message;}
+  finally{running=false;b.disabled=false;}
+  await reload();
+});
+reload();
+})();
+</script>
+</body>
+</html>
