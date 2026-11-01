@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LeadFlow · Website Widget Installer</title><link rel="stylesheet" href="/brand.css">
+<style>
+:root{font-family:Inter,ui-sans-serif,system-ui,sans-serif;color-scheme:dark}*{box-sizing:border-box}
+body{margin:0}main{max-width:1150px;margin:auto;padding:32px 22px 80px}
+.install-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(300px,.9fr);gap:20px}
+.panel{background:#102136;border:1px solid #2b4863;padding:24px;border-radius:20px}
+label{display:grid;gap:7px;font-size:12px;font-weight:750;color:#b5cce0;margin-bottom:16px}
+input,select{background:#0b192a;color:#eff7ff;border:1px solid #3c5d7a;border-radius:9px;padding:11px;font:inherit}
+input[type=color]{padding:4px;width:100px;height:44px}
+button{background:#69c6fb;color:#06182a;border:0;border-radius:11px;padding:12px 15px;font-weight:800;cursor:pointer}
+pre{white-space:pre-wrap;overflow-wrap:anywhere;color:#c4e7da;background:#091a28;border:1px solid #38546a;border-radius:12px;padding:17px;font-size:12px;line-height:1.7}
+iframe{border:1px solid #4a647f;border-radius:15px;width:100%;height:530px;background:white}
+.warning{font-size:12px;color:#e7caa6;line-height:1.65}
+@media(max-width:850px){.install-grid{grid-template-columns:1fr}}
+</style></head>
+<body><main>
+<div class="lf-bar"><a class="lf-brand" href="/"><span class="lf-mark">L</span><span>LeadFlow<small>BUSINESS EXTENSION</small></span></a><nav class="lf-nav" aria-label="Primary"><a href="/">Overview</a><a href="/action-center">Action Center</a><a href="/embed-demo">Widget demo</a><a href="/install" aria-current="page">Install preview</a></nav></div>
+<section class="lf-hero"><p class="lf-eyebrow">Website integration · local preview</p><h1>Make every inquiry actionable.</h1><p>Configure the look of LeadFlow's drop-in inquiry button. Preview the customer experience and copy an example installation snippet for a future approved HTTPS deployment.</p><div class="lf-context"><span><i class="lf-dot"></i>Single-script concept</span><span>Rules-first routing</span><span>Human-controlled follow-ups</span></div></section>
+<div class="install-grid"><section class="panel"><h2>01 / Widget appearance</h2>
+<label for="title">Button label<input id="title" maxlength="60" value="Request an estimate"></label>
+<label for="accent">Brand accent<input type="color" id="accent" value="#176ca9"></label>
+<label for="align">Placement<select id="align"><option value="right">Bottom right</option><option value="left">Bottom left</option></select></label>
+<h2>02 / Example installation</h2><p class="warning">Not a live install code. Replace the placeholder host only after public hosting, tenant authorization, abuse controls and consent/privacy review are approved. Never put local addresses on a public site.</p>
+<pre id="snippet" aria-label="Example script snippet"></pre>
+<button id="copy" type="button">Copy example</button><p id="copy-status" role="status"></p></section>
+<section class="panel"><h2>03 / Customer experience</h2><p style="color:#aec4d7">Real local intake form preview. Use fictitious details only. No emails, appointments or CRM writes are triggered.</p>
+<iframe src="/widget" title="LeadFlow customer inquiry form"></iframe><p class="warning">The floating launcher can also be tested on the <a href="/embed-demo">website simulation</a>.</p></section></div>
+<footer class="lf-foot"><span>LEADFLOW / WEBSITE INQUIRY LAYER</span><span>LOCAL DEMONSTRATION · NOT PRODUCTION</span></footer>
+</main><script>
+(function(){'use strict';
+const title=document.getElementById('title'),accent=document.getElementById('accent'),align=document.getElementById('align'),snippet=document.getElementById('snippet');
+function escapeAttr(text){return String(text).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+function code(){const label=title.value.trim().slice(0,60)||'Request a callback';return '<script src="https://YOUR-APPROVED-HOST.example/embed.js" data-label="'+escapeAttr(label)+'" data-accent="'+accent.value+'" data-align="'+align.value+'" defer><'+'/script>';}
+function refresh(){snippet.textContent=code();}
+for(const input of [title,accent,align])input.addEventListener('input',refresh);refresh();
+document.getElementById('copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(snippet.textContent);document.getElementById('copy-status').textContent='Example copied. Replace the placeholder only after production review.';}catch{document.getElementById('copy-status').textContent='Select and copy the example from the box above.';}});
+}());
+</script></body></html>
