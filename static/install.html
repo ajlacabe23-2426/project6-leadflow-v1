@@ -25,7 +25,7 @@ iframe{border:1px solid #4a647f;border-radius:15px;width:100%;height:530px;backg
 <h2>02 / Example installation</h2><p class="warning">Not a live install code. Replace the placeholder host only after public hosting, tenant authorization, abuse controls and consent/privacy review are approved. Never put local addresses on a public site.</p>
 <pre id="snippet" aria-label="Example script snippet"></pre>
 <button id="copy" type="button">Copy example</button><p id="copy-status" role="status"></p></section>
-<section class="panel"><h2>03 / Customer experience</h2><p style="color:#aec4d7">Real local intake form preview. Use fictitious details only. No emails, appointments or CRM writes are triggered.</p>
+<section class="panel"><h2>03 / Customer experience</h2><div class="lf-context" style="margin-bottom:17px"><span>Configured button preview</span></div><div style="display:flex;margin-bottom:17px" id="sample-placement"><button type="button" id="sample-button" aria-label="Widget button appearance preview">Request an estimate</button></div><p style="color:#aec4d7">Real local intake form preview. Use fictitious details only. No emails, appointments or CRM writes are triggered.</p>
 <iframe src="/widget" title="LeadFlow customer inquiry form"></iframe><p class="warning">The floating launcher can also be tested on the <a href="/embed-demo">website simulation</a>.</p></section></div>
 <footer class="lf-foot"><span>LEADFLOW / WEBSITE INQUIRY LAYER</span><span>LOCAL DEMONSTRATION · NOT PRODUCTION</span></footer>
 </main><script>
@@ -33,7 +33,16 @@ iframe{border:1px solid #4a647f;border-radius:15px;width:100%;height:530px;backg
 const title=document.getElementById('title'),accent=document.getElementById('accent'),align=document.getElementById('align'),snippet=document.getElementById('snippet');
 function escapeAttr(text){return String(text).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 function code(){const label=title.value.trim().slice(0,60)||'Request a callback';return '<script src="https://YOUR-APPROVED-HOST.example/embed.js" data-label="'+escapeAttr(label)+'" data-accent="'+accent.value+'" data-align="'+align.value+'" defer><'+'/script>';}
-function refresh(){snippet.textContent=code();}
+const sample=document.getElementById('sample-button'),placement=document.getElementById('sample-placement');
+const frame=document.querySelector('iframe[title="LeadFlow customer inquiry form"]');
+let lastAccent='';
+function refresh(){
+  snippet.textContent=code();
+  sample.textContent=title.value.trim().slice(0,60)||'Request a callback';
+  sample.style.backgroundColor=accent.value;
+  placement.style.justifyContent=align.value==='left'?'flex-start':'flex-end';
+  if(lastAccent!==accent.value){lastAccent=accent.value;frame.src='/widget?accent='+encodeURIComponent(lastAccent);}
+}
 for(const input of [title,accent,align])input.addEventListener('input',refresh);refresh();
 document.getElementById('copy').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(snippet.textContent);document.getElementById('copy-status').textContent='Example copied. Replace the placeholder only after production review.';}catch{document.getElementById('copy-status').textContent='Select and copy the example from the box above.';}});
 }());
