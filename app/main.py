@@ -277,6 +277,16 @@ def embed_demo() -> FileResponse:
     return FileResponse(Path("static/embed-demo.html"))
 
 
+@app.get("/brand.css", include_in_schema=False)
+def brand_stylesheet() -> FileResponse:
+    return FileResponse(Path("static/brand.css"), media_type="text/css")
+
+
+@app.get("/install", include_in_schema=False)
+def install_preview() -> FileResponse:
+    return FileResponse(Path("static/install.html"))
+
+
 @app.get("/embed.js", include_in_schema=False)
 def embed_script() -> FileResponse:
     return FileResponse(Path("static/embed.js"), media_type="text/javascript")

@@ -6,7 +6,9 @@
 <title>LeadFlow — Request a callback</title>
 <style>
 :root{color-scheme:light;font-family:Inter,system-ui,Arial,sans-serif}
-*{box-sizing:border-box}body{margin:0;background:#f5f8fb;color:#142338;padding:18px}
+*{box-sizing:border-box}body{margin:0;background:#f5f8fb;color:#142338;padding:20px}
+body::before{content:"LEADFLOW / INQUIRY";display:block;color:#6a8296;font:800 10px system-ui;letter-spacing:.13em;margin:2px 0 20px}
+input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--lf-accent,#193b62);outline-offset:3px}
 h1{font-size:1.35rem;letter-spacing:-.025em;margin:0 0 8px}
 p{font-size:.83rem;line-height:1.45;color:#50667d}
 form{display:grid;gap:11px}
@@ -15,7 +17,7 @@ input,textarea{font:inherit;width:100%;padding:10px;border:1px solid #a2b7ca;bor
 textarea{min-height:62px}
 .check{display:flex;align-items:start;gap:9px;font-size:.76rem;font-weight:400}
 .check input{width:auto;margin-top:3px}
-button{background:#193b62;border:0;padding:11px;border-radius:10px;color:#fff;font:inherit;font-weight:700;cursor:pointer}
+button{background:var(--lf-accent,#193b62);border:0;padding:11px;border-radius:10px;color:#fff;font:inherit;font-weight:700;cursor:pointer}
 button:disabled{opacity:.5}
 #status{min-height:32px;font-size:.8rem;color:#254a63}
 </style>
@@ -36,6 +38,8 @@ button:disabled{opacity:.5}
 <script>
 (function(){
   "use strict";
+  const candidate=new URLSearchParams(window.location.search).get("accent")||"";
+  if(/^#[0-9a-fA-F]{6}$/.test(candidate))document.documentElement.style.setProperty("--lf-accent",candidate);
   const form=document.getElementById("inquiry"),status=document.getElementById("status"),button=form.querySelector("button");
   let pending=false,replayKey=null;
   form.addEventListener("submit",async function(e){

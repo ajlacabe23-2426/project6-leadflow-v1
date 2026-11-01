@@ -1,0 +1,47 @@
+/* LeadFlow business extension design system: shared by local operator screens.
+   Presentation only; no auth or public installation claim. */
+:root{--lf-base:#060e1b;--lf-panel:#111f33;--lf-panel2:#14263e;--lf-border:#29415d;--lf-text:#ecf5ff;--lf-muted:#a6b8cc;--lf-primary:#64c6ff;--lf-mint:#8fe0cb}
+html{background:var(--lf-base);scroll-behavior:smooth}
+body{background:radial-gradient(ellipse 75% 50% at 96% -15%,#163858 0%,transparent 68%),linear-gradient(145deg,#07111f 0%,#0a1625 60%,#06111f 100%)!important;color:var(--lf-text)!important;min-height:100vh}
+body::before{content:"";position:fixed;inset:0;z-index:-1;background:linear-gradient(90deg,transparent 0%,transparent 98%,#ffffff04 98%);background-size:40px 40px;pointer-events:none}
+main{max-width:1320px!important;padding-top:32px!important}
+a{color:#96daff}
+button{transition:transform .15s ease,background-color .15s ease,box-shadow .15s ease}
+button:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 9px 24px #0b172a55}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:2px solid var(--lf-mint)!important;outline-offset:3px}
+input,textarea,select{min-height:44px}
+::placeholder{color:#8196ac}
+.lf-bar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:18px;border-bottom:1px solid #2e425b;padding:0 0 23px;margin:0 0 28px}
+.lf-brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:#f3fbff;font-size:17px;font-weight:850;letter-spacing:-.03em}
+.lf-mark{display:grid;place-items:center;background:linear-gradient(155deg,#50c0ff,#4381dc);color:#001528;width:39px;height:39px;border-radius:12px;font-size:20px;box-shadow:0 10px 30px #1b8fc33d}
+.lf-brand small{display:block;font-size:9px;letter-spacing:.15em;color:#94abc3;font-weight:700;margin-top:1px}
+.lf-nav{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lf-nav a{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;text-decoration:none;color:#bfd2e6;padding:10px 13px;border:1px solid transparent;border-radius:11px;font-size:12px;font-weight:750}
+.lf-nav a:hover,.lf-nav a[aria-current="page"]{background:#1b3350;border-color:#315c82;color:#f1f9ff}
+.lf-nav .lf-install{background:#1765a5;color:white;border:1px solid #328ad1}
+.lf-eyebrow{text-transform:uppercase;font-size:11px;letter-spacing:.18em;color:#83d6ce;font-weight:800;margin:0 0 11px}
+.lf-hero{position:relative;isolation:isolate;overflow:hidden;padding:27px 29px;border:1px solid #304c68;border-radius:22px;background:linear-gradient(120deg,#10243c 0%,#102d44 60%,#16354d 100%);margin-bottom:23px;box-shadow:0 24px 65px #0209163b}
+.lf-hero::after{content:"";position:absolute;width:240px;height:240px;right:-85px;top:-140px;background:#65e1da20;filter:blur(9px);border-radius:50%;z-index:-1}
+.lf-hero h1{font-size:clamp(30px,4vw,48px);line-height:1.1;letter-spacing:-.052em;margin:0 0 10px}
+.lf-hero p{max-width:670px;color:#bbd0df;line-height:1.65;margin-bottom:12px}
+.lf-hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:21px}
+.lf-hero-actions a{display:inline-flex;align-items:center;background:#68c8fa;color:#041727;text-decoration:none;font-weight:800;border-radius:10px;padding:11px 16px;font-size:13px}
+.lf-hero-actions a.lf-ghost{background:#223d56;color:#deedf9;border:1px solid #3b5e7f}
+.lf-context{display:flex;flex-wrap:wrap;align-items:center;gap:10px;color:#abc2d1;font-size:11px}
+.lf-dot{display:inline-block;border-radius:50%;width:7px;height:7px;background:#76dfbc;margin-right:5px}
+.lf-context span{border:1px solid #33546d;border-radius:99px;padding:5px 10px}
+.controls,.card,.cards,.case,.metric{background:linear-gradient(150deg,#122339,#0d1c30)!important;border:1px solid #2b4863!important;box-shadow:0 10px 33px #03091826}
+.card,.case{border-radius:18px}
+.card h2,.case h3,h2{color:#eef8ff}
+.muted,small,.note{color:#a3b8c9!important}
+.metric{position:relative;overflow:hidden}
+.metric::before{content:"";position:absolute;width:32px;height:3px;border-radius:99px;left:17px;top:0;background:linear-gradient(90deg,#64c8fb,#84ebc3)}
+.metric strong{color:#f3faff}
+.status{background:#102f3b;border:1px solid #27626b;border-radius:10px;padding:12px 15px}
+.case{border-left:3px solid #58baff!important}
+.task{background:#0c1c2c;border-color:#365271!important}
+.task.overdue{border-color:#c19051!important}
+.pill,.badge{border:1px solid #385c77;background:#233c58!important;color:#d8eaf7}
+.lf-foot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11px;color:#8faac0;margin:35px 0;border-top:1px solid #2d4157;padding-top:20px}
+@media(max-width:740px){main{padding:17px 14px 55px!important}.lf-bar{margin-bottom:17px;padding-bottom:17px}.lf-nav{gap:2px}.lf-nav a{font-size:11px;padding:8px}.lf-hero{padding:23px 18px}.lf-hero-actions a{width:100%;justify-content:center}.lf-context{gap:5px}.case{padding:16px!important}.metric{padding:15px!important}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}button{transition:none}button:hover{transform:none}}

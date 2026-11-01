@@ -55,3 +55,22 @@ The existing token guard is a local demonstration boundary, not user identity. S
 
 ## Cost model hypothesis
 Offer one installable widget, deterministic rules and a single Action Center before exploring optional AI summaries, additional channels or advanced integrations. Pricing and revenue claims must be validated with prospective buyers.
+
+## Business-extension interface refresh (November 1, 2026)
+
+The operator overview and Action Center now share a responsive dark-navy design system.
+A local `/install` screen previews the configurable website widget and produces an
+**example-only** script snippet with safe `data-label`, `data-accent` (six-digit hex),
+and `data-align` (left/right) options. The separate customer iframe uses the
+validated accent and preserves consent-off-by-default, idempotent intake behavior.
+
+Local routes:
+- `/` — operator demonstration overview.
+- `/action-center` — protected internal owner/deadline/task workspace.
+- `/embed-demo` — fictitious business website with floating intake launcher.
+- `/install` — script generator and isolated inquiry-form preview.
+
+The example host is deliberately nonfunctional. Publishing the widget still requires
+business identity, tenant-bound installation tokens, rate limits, HTTPS, privacy terms,
+legally reviewed customer consent, monitoring, recovery testing, and external acceptance.
+A cosmetic preview is NOT a production-ready marketplace extension or multi-tenant CRM.

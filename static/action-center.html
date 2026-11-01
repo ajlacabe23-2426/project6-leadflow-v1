@@ -40,15 +40,16 @@ button:disabled{opacity:.45;cursor:wait}
 .note{font-size:.85rem;color:#a9bdd0;line-height:1.5}
 @media(max-width:720px){.case{grid-template-columns:1fr}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}main{padding:20px 14px 55px}}
 </style>
+<link rel="stylesheet" href="/brand.css">
 </head>
 <body>
 <main>
-<header>
-  <div class="eyebrow">LEADFLOW / RELIABLE LEAD HANDLING</div>
-  <nav><a href="/">Intake &amp; queue</a> &nbsp;·&nbsp; <a href="/widget">Widget preview</a></nav>
-</header>
-<h1>Action Center<span style="color:#45aff1">.</span></h1>
-<p class="muted">Every inquiry needs an owner, a deadline and a verifiable next step. Not another CRM.</p>
+<div class="lf-bar"><a class="lf-brand" href="/"><span class="lf-mark">L</span><span>LeadFlow<small>BUSINESS EXTENSION</small></span></a><nav class="lf-nav" aria-label="Primary"><a href="/">Overview</a><a href="/action-center" aria-current="page">Action Center</a><a href="/embed-demo">Widget demo</a><a class="lf-install" href="/install">Install preview</a></nav></div>
+<section class="lf-hero"><p class="lf-eyebrow">OPERATOR WORKSPACE / SERVICE RELIABILITY</p>
+<h1>Action Center<span style="color:#68c7fb">.</span></h1><p>Make ownership visible. Never lose an inquiry to an unclear handoff, missed deadline, or unreviewed request.</p>
+<div class="lf-context"><span><i class="lf-dot"></i>Persisted follow-up evidence</span><span>Human-approved outreach</span><span>Local demonstration</span></div>
+<div class="lf-hero-actions"><a href="/install">Configure inquiry widget</a><a class="lf-ghost" href="/">Open lead intake</a></div></section>
+<p class="lf-eyebrow">INTERNAL OBLIGATIONS / CASE MANAGEMENT</p><h2>Follow-up command board</h2><p class="muted">Review priorities, claim ownership, and close documented actions. No outbound messages are sent.</p>
 <section class="controls">
   <label>Operator token (local demo, if enabled)
     <input type="password" id="token" autocomplete="off" spellcheck="false" placeholder="Kept only in page memory">
@@ -67,6 +68,7 @@ button:disabled{opacity:.45;cursor:wait}
 </section>
 <section class="cases" id="cases"></section>
 <p class="note">All activity here is internal workflow tracking. No email, SMS, CRM or calendar action is sent. A lead without communication consent requires internal review before any outreach.</p>
+<footer class="lf-foot"><span>LEADFLOW / INTERNAL ACTION CENTER</span><span>LOCAL DEMONSTRATION · NOT MULTI-TENANT</span></footer>
 </main>
 <script>
 (function(){
