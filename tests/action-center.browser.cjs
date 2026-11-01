@@ -66,9 +66,24 @@ async function run(){
     assert.match(await page.locator('.case').innerText(),/Synthetic Widget Lead/);
     assert.match(await page.locator('.case').innerText(),/queue\.triage/);
     assert.match(await page.locator('.case').innerText(),/owner review/i);
+    // Client-only filtering must not mutate the protected operator queue.
+    await page.locator('#case-search').fill('no matching fictional inquiry');
+    assert.equal(await page.locator('.case').count(),0);
+    assert.match(await page.locator('#case-count').innerText(),/0 of 1/);
+    await page.locator('#case-search').fill('Synthetic Widget Lead');
+    assert.equal(await page.locator('.case').count(),1);
+    await page.locator('#case-view').selectOption('unclaimed');
+    assert.equal(await page.locator('.case').count(),1);
+    await page.locator('#case-reset').click();
+    assert.equal(await page.locator('.case').count(),1);
+    assert.equal(await page.locator('#case-view').inputValue(),'all');
     await page.locator('#owner').fill('operator.browser');
     await page.getByRole('button',{name:'Assign to operator'}).click();
     await page.getByText('operator.browser').waitFor();
+    await page.locator('#case-view').selectOption('unclaimed');
+    assert.equal(await page.locator('.case').count(),0,'assigned cases no longer appear as unclaimed');
+    await page.locator('#case-reset').click();
+    assert.equal(await page.locator('.case').count(),1);
     await page.getByRole('button',{name:'Mark completed'}).click();
     await page.locator('.task.done').waitFor();
 
